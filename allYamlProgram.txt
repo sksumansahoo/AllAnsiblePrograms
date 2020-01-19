@@ -1,3 +1,32 @@
+
+==> /home/ujam/hosts <==
+[jenkinsmaster]
+192.168.33.95
+
+[yamlnodes]
+192.168.33.97
+192.168.33.99
+
+[linux:children]
+jenkinsmaster
+yamlnodes
+=================================================
+
+==> /home/ujam/hosts.yml <==
+   hosts:
+      192.168.33.97:
+      192.168.33.99:
+   vars:
+      ansible_become: true
+      ansible_become_pass: suman345
+linux:
+   children:
+      jenkinsmaster:
+      yamlnodes:
+
+==================================================
+
+
 ./1_0_ExHow2createTask.yml
 ==================================================
 # Structure of  ansible playbook
