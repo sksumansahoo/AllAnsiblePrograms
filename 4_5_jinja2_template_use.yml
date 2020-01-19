@@ -1,0 +1,11 @@
+---
+- hosts: control
+  gather_facts: true
+
+  tasks:
+    - name: Use of jinja2 template
+      template:
+        src: 4_5_jinja2Template.j2
+        dest: "/tmp/{{ ansible_hostname }}.out"
+        trim_blocks: true
+

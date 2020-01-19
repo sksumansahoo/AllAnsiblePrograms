@@ -1,0 +1,82 @@
+---
+
+  - name: Tomcat URL info
+    debug:         # value of tomcat.software.source comes from group_var/yamlnodes.yml
+      msg:  "Download tomcat from {{ tomcat.software.source }}"
+
+  - name: Download tomcat using get_url module
+    get_url: 
+      url: "{{ tomcat.software.source }}"
+      dest: /tmp/
+
+################### we can use wget in command module ################
+#    - name: Download tomcat                                         #
+#      command: " wget {{ tomcat.software.source }}"                 #
+#      args:                                                         #
+#        chdir: /tmp/                                                #
+######################################################################
+
+  - name: check tomcat directory if not exist create the directory
+    block:
+      - name: check tomcat directory
+        stat:
+          path: /opt/apache-tomcat
+        register: dirStat
+     #- debug: var=dirStat 
+
+      - name: create tomcat directory if not exist
+        file:
+          path: /opt/apache-tomcat
+          recurse: true
+          state: directory
+        when: dirStat.stat.exists == false
+
+  - name: Extract tomcat from archive if tomcat is not extracted
+    block:
+      - name: check tomcat is extracted or not
+        shell: " ls -1 | wc  -l"
+        args:
+          chdir: /opt/apache-tomcat/
+        register: counts
+      - debug: var=counts
+
+      - name: extract tomcat 
+        unarchive:
+          src: /tmp/apache-tomcat-9.0.11.tar.gz
+          remote_src: yes    #   yes    indicate the archived file is already on the remote system 
+          dest: /opt/apache-tomcat
+        when: counts.stdout | int == 0
+
+  - name: Ansible template with_items
+    template:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      mode: 0777
+      backup: yes
+      owner: root
+      group: root
+    with_items:
+      - {src: '/home/ujam/ansibleDir/playbooks/tomcat/roles/templates/context.xml' , dest: '/opt/apache-tomcat/apache-tomcat-9.0.11/webapps/manager/META-INF/'}
+      - {src: '/home/ujam/ansibleDir/playbooks/tomcat/roles/templates/tomcat-users.xml' , dest: '/opt/apache-tomcat/apache-tomcat-9.0.11/conf/'}
+      - {src: '/home/ujam/ansibleDir/playbooks/tomcat/roles/templates/host-manager.xml' , dest: '/opt/apache-tomcat/apache-tomcat-9.0.11/conf/Catalina/localhost/'}
+      - {src: '/home/ujam/ansibleDir/playbooks/tomcat/roles/templates/manager.xml' , dest: '/opt/apache-tomcat/apache-tomcat-9.0.11/conf/Catalina/localhost/'}
+ 
+  - name: enable firewall and iptable for http   
+    block:
+      - name: enable  iptable for http
+        vars:
+          enable_http: yes
+        iptables:
+          chain: INPUT
+          protocol: udp
+          destination_port: "8080"
+          jump: ACCEPT
+        when: enable_http
+
+      - name: Enable port in firewall
+        firewalld:
+         # zone: dmz
+         # service: http
+          port: 8080/tcp
+          permanent: yes
+          state: enabled     

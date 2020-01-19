@@ -1,0 +1,45 @@
+# Incase of with_nested loop for each outer element all the inner element will be executed
+
+# in this example we are creating the user directory using  with_nested loop
+
+---
+- hosts: yamlnodes
+  become: true
+  
+  tasks:
+    - name: create user using with_subelements by expanding the subelements
+      user:
+        name: "{{ item.1 }}"
+        comment: "{{ item.1 | title }} {{ item.0.comments }}"
+      with_subelements:
+        - 
+          - comments: this is normal user
+            username:
+             - sumantakumar
+             - akhilesh
+          - comments: this is group user
+            username:
+             - smita
+        - username
+      tags: expand_subelement
+
+    - name: create the user directory
+      file:
+        dest: "/home/{{ item.0 }}/{{ item.1 }}"
+        owner: "{{ item.0 }}"
+        group: "{{ item.0 }}"
+        state: directory
+      with_nested:
+        - [ sumantakumar , akhilesh , smita ]
+        - [ devops , movie , photo ]
+      tags: create_dir
+    - name: delete user using with_items
+      user: 
+        name: "{{ item }}"        
+        state: absent
+        remove: yes
+      with_items:                # list argument in yaml form
+        - sumantakumar
+        - smita
+        - akhilesh
+      tags:  delete_user

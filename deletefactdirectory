@@ -1,0 +1,9 @@
+---
+- hosts: linux
+  gather_facts: false
+  become: true
+  tasks:
+    - name: delete directory
+      file:
+        path: /etc/ansible/facts.d
+        state: absent

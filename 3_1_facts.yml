@@ -1,0 +1,11 @@
+#when any module return a dictionary "ansible_facts" then that output will be added 
+# to the scope of the "anisble_facts" variable for that paritcular hosts
+
+---
+- hosts: all
+  gather_facts: true
+
+  tasks:
+    - name: show the ip adress 
+      debug:
+        msg: "{{ ansible_default_ipv4.address }}"

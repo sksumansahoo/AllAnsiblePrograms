@@ -1,0 +1,13 @@
+# In Ansible we can reuse the content with include and import and roles 
+# All import* statements are pre-processed at the time playbooks are parsed.
+# All include* statements are processed as they encountered during the execution of the playbook.
+# So import (import_playbook, import_tasks, etc.) is static. 
+#    include (include_tasks, include_role, etc.) is dynamic.
+# "include: {{ codename }}.yml " 
+
+
+# In the below example include a playbook 
+
+---
+- include: 9_1_blocks.yml
+

@@ -1,0 +1,56 @@
+# In ansible tasks executed in linear form means each one task execute for  all the hosts specified in
+# the program before going to other task
+
+---
+- hosts: linux
+
+  vars:
+    thejobIds: []  
+
+  tasks:
+    - name: task 1 
+      command:  /bin/sleep 10
+      when: ansible_hostname == 'jenkinMaster'
+      async: 10                 # time out for the task 
+      poll: 0                   # if poll value is Zero Ansible will start the task and immediately 
+      register: output1         # move on to the next one without waiting for a result.
+                                # when poll value is zero we can not confirm task is completed or not
+                                # we can only check the background process  ps -ef |grep -i ansible
+    - name: task 2
+      command: /bin/sleep 35
+      when: ansible_hostname == 'jenkinslave1'
+      async: 35
+      poll: 0
+      register: output2
+
+    - name: task 3
+      command: /bin/sleep 10
+      when: ansible_hostname == 'jenkinslave2'
+      async: 10
+      poll: 0
+      register: output3
+
+#    - name: show the register content for task1
+#      debug:
+#        var: output1      # the output will show the jobid and the result file, but will not show success or failure 
+
+#    - name: show the register content for the task1 using jinja2 
+#      debug:
+#        msg: "{{ output1 }}"
+
+# to know the status / more  information about the task/job we can use the ansible_jobid of asynchronous task 
+
+    - name: capture the job ids 
+      set_fact:
+        jobids: >
+               {% if item.ansible_job_id is defined -%}
+                  {{ thejobIds + [item.ansible_job_id] }}
+               {% else -%}
+                  {{ thejobIds }}
+               {% endif %}
+      with_items: "{{ [ output1 , output2 , output3 ] }}"
+ 
+    - name: show the job ids 
+      debug:
+        var: thejobIds
+

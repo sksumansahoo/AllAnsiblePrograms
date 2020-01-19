@@ -1,0 +1,11 @@
+---
+- hosts: linux
+  gather_facts: false
+
+  vars:
+    exKey: this is an example value   # this is key value pair
+
+  tasks:
+    - name: Test the dictionary key value
+      debug:
+        msg: "{{ exKey }}"

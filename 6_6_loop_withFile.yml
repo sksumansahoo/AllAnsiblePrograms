@@ -1,0 +1,25 @@
+# the with_file loop copy the file content to other file 
+
+# in this example we copy the rsa pubic key content to authorized_key of an user's 
+
+---
+- hosts: yamlnodes
+  become: true
+
+  tasks:
+    - name: create an user
+      user:
+        name: "{{ item.key }}"
+        comment: "{{ item.value.comments }}"
+      with_dict:
+        smita:
+          comments: this is a normal user
+
+    - name: create authorized key using with_file
+      authorized_key:
+        user: smita
+        key: "{{ item }}"
+      with_file:
+        - /home/ujam/.ssh/id_rsa.pub
+
+# once the script executed successfully we can validate it by " ssh smita@192.168.33.97 "

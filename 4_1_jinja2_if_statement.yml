@@ -1,0 +1,40 @@
+---
+- hosts: all
+  gather_facts: true
+  
+  tasks:
+    - name: ansible jinja2 if condition
+      debug:
+        msg: > 
+            --== Ansible jinja2 if condition ==--
+    
+            {# This is a comment in jinja2 -#}
+    
+            {% if ansible_hostname == 'yamlServer' -%}
+               This is the ansible server
+            {% endif %}
+    
+    - name: ansible jinja2 if else condition
+      debug:
+        msg: >
+          --== Ansible jinja2 if elif condition ==--
+    
+          {% if ansible_hostname == 'yamlServer' -%}
+             This is the ansible server
+          {% elif ansible_hostname == 'jenkinMaster' -%}
+             This is the jenkin master server
+          {% endif %}
+    
+    - name: ansible jinja2 if elif else condition
+      debug:
+        msg: >
+            --== Ansible jinja2 if elif condition ==--
+    
+            {% if ansible_hostname == 'yamlServer' -%}
+               This is the ansible server
+            {% elif ansible_hostname == 'jenkinMaster' -%}
+               This is the jenkin master server
+            {% else -%}
+               this is the     {{ ansible_hostname }}
+            {% endif %}
+

@@ -1,0 +1,49 @@
+
+# to perform looping we need to add  jinja2_extentions = jinja2.ext.loopcontrols in ansible.cfg file
+
+---
+- hosts: control
+  gather_facts: true
+  
+  tasks:
+    - name: Ansible jinja2 for loop using range()
+      debug:
+        msg: >
+             --== Ansible jinja2 for loop using range() ==--
+             {% for i in range(1,11) -%}
+                value is = {{ i }}
+             {% endfor %}
+    
+    - name: Ansible jinja2 for loop in reverse counting
+      debug:
+        msg: >
+              --== Ansible jinja2 for loop in reverse counting ==--
+              {% for i in range(11, 1, -1) -%}
+                 value is = {{ i }}
+              {% endfor %}
+
+    - name: Ansible jinja2 for loop using break
+      debug:
+        msg: >
+             --== Ansible jinja2 for loop using break ==--
+             {% for i in range(11, 1, -1) -%}
+                {% if i == 5 -%}
+                   {% break %}
+                {% else -%}
+                   value is = {{ i }}
+                {% endif %}
+             {% endfor %}
+
+    - name: Ansible jinja2 for loop using continue
+      debug:
+        msg: >
+            --== Ansible jinja2 for loop using continue ==--
+            {% for i in range(11, 1, -1) -%}
+               {% if i is odd -%}
+                  {% continue %}
+               {% else -%}
+                  value is = {{ i }}
+               {% endif %}
+            {% endfor %}   
+    
+    

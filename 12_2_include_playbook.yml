@@ -1,0 +1,15 @@
+---
+
+- include: 9_1_blocks.yml
+
+- hosts: 192.168.33.97
+
+  tasks:
+    - name: count no of file in the directory
+      shell: |
+             ls -1 | wc -l
+      args:
+        chdir: /home/ujam/workInsideTheDir/allYamlPrograms
+      register: theCount
+    - debug:         # var=theCount
+        msg: "cout is {{ theCount.stdout }}"

@@ -1,0 +1,55 @@
+# we can write our custom fact in any language which can return the output in 
+# json or ini(yml) structure.   The default path is /etc/ansible/facts.d
+
+# The file getcustomfacts1.fact ( json format ) and  getcustomfacts2.fact ( INI format)
+# copied to  /etc/ansible/facts.d  path
+
+# refresh the setup module
+#==================================
+# ansible -i /home/ujam/hosts.yml control -m setup -a  'filter=ansible_local'
+#                                 or
+# ansible -i /home/ujam/hosts.yml control -m setup | tee /tmp/factRes
+
+
+
+---
+- hosts: all
+  gather_facts: true
+
+  become: ujam 
+
+  tasks:
+    - name: create fact dictionary
+      file:
+        path: /etc/ansible/facts.d
+        recurse: yes
+        state: directory
+
+    - name: copy  getcustomfacts1.fact ans  getcustomfacts2.fact to /etc/ansible/facts.d/
+      copy:
+        src: /etc/ansible/facts.d/{{ item }}
+        dest: /etc/ansible/facts.d/
+        mode: a+rwx
+      with_items:
+        - getcustomfacts1.fact 
+        - getcustomfacts2.fact 
+
+    - name: refresh the setup module
+      setup:
+        fact_path: /etc/ansible/facts.d
+
+    - name: show custom fact 1
+      debug:
+        msg: "{{ ansible_local.getcustomfacts1.current_date }}"
+
+    - name: show custom fact 2
+      debug:
+        msg: "{{ ansible_local.getcustomfacts2.current_date.current_date }}"
+
+    - name: show custom fact 1 using hostvars
+      debug:
+        msg: "{{ hostvars[ansible_hostname].ansible_local.getcustomfacts1.current_date }}"
+
+    - name: show custom fact 2 using hostvars
+      debug:
+        msg: "{{ hostvars[ansible_hostname].ansible_local.getcustomfacts2.current_date.current_date }}"

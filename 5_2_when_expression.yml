@@ -1,0 +1,30 @@
+---
+- hosts: linux
+  gather_facts: true
+
+  tasks:
+    - name: when expression
+      command: hostname -s
+      when: (ansible_distribution == "CentOS" and ansible_distribution_major_version | int >= 7 )
+            or ansible_hostnameansible_hostname == "yamlServer"
+      register: result
+
+    - name: print the result of when expression
+      debug:
+        var: result
+
+
+# we can use list of agruments in when condition as below
+
+
+    - name: when expression with list of arguments
+      command: hostname -s
+      when:
+        - ansible_distribution == "CentOS"
+        - ansible_distribution_major_version | int >= 7
+      register: result2
+
+
+    - name: print the result of when expression
+      debug:
+        var: result2

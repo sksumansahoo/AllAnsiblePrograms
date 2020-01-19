@@ -1,0 +1,14 @@
+---
+- hosts: 192.168.33.99 
+
+  gather_facts: true
+  remote_user: ujam
+  become: true
+  become_method: sudo
+
+  roles:
+#    the below line 'roles' is a directory present in tomcat directory
+    - roles
+
+
+# To execute use    ansible-playbook -i ./inventory/hosts   tomcat_setup.yml   --skip-tags "shutdown_tomcat" 

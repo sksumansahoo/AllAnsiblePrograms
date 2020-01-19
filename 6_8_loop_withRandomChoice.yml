@@ -1,0 +1,25 @@
+# with_random_choice loop taked as list of arguments and pick a random element from the list
+
+# in this example we are creating a sequence of directory using with_random_choice loop
+
+---
+- hosts: yamlnodes
+  become: true
+
+  tasks:
+    - name: create an user
+      user:
+        name: "{{ item.key }}"
+        comment: "{{ item.value.comments }}"
+      with_dict:
+        smita:
+          comments: this is a normal user
+
+    - name: create a sequence of directory using with_random_choice loop
+      file:
+        dest: "/home/smita/{{ item }}"
+        state: directory
+      with_random_choice:
+        - movies
+        - photos
+        - games

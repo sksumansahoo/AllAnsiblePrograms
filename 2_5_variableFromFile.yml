@@ -1,0 +1,62 @@
+# Read variable from file using  vars_files
+
+---
+- hosts: control
+  gather_facts: false
+
+  vars_files:
+    - 2_5_exterVarFile.yml
+
+  tasks:
+    - name: get the value of the key from external file
+      debug:
+        msg: "{{ thekey }}"
+   
+    - name: get the value of the dictionary from external file
+      debug:
+        msg: "{{ extDict }}"
+
+    - name: get the value of the dictionary key from external file in yaml format extDict.dictKey1
+      debug:
+        msg: "{{ extDict.dictKey1 }}"
+
+    - name: get the value of the dictionary key from external file in python format extDict['dictKey2']
+      debug:
+        msg: "{{ extDict['dictKey2'] }}"
+
+    - name: get the value of the inline dictionary from external file
+      debug:
+        msg: "{{ extInlineDict }}"
+
+    - name: get the value of the inline dictionary key from external file in yaml format extInlineDict.inlineKey1
+      debug:
+        msg: "{{ extInlineDict.inlineKey1 }}"
+
+    - name: get the value of the inline dictionary key from external file in python format extInlineDict['inlineKey2']
+      debug:
+        msg: "{{ extInlineDict['inlineKey2'] }}"
+
+    - name: get the value of the list from external file
+      debug:
+        msg: "{{ extList }}"
+
+    - name: get the value of 1st element the list from external file in yaml format extList.0
+      debug:
+        msg: "{{ extList.0 }}"
+
+    - name: get the value of the list from external file in python format extList[2]
+      debug:
+        msg: "{{ extList[2] }}"
+
+    - name: get the value of the inline list from external file
+      debug:
+        msg: "{{ extInlineList }}"
+
+    - name: get the value of 1st element of the inlineList from external file in yaml format extInlineList.1
+      debug:
+        msg: "{{ extInlineList.1 }}"
+
+    - name: get the value of 2nd the inline list from external file in python format extInlineList[2]
+      debug:
+        msg: "{{ extInlineList[2] }}"
+   

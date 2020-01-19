@@ -1,0 +1,31 @@
+# with_dict loop takes a list of dictionay as argument 
+# in this example we are creating the user using  with_dict loop
+
+---
+- hosts: yamlnodes
+  become: true
+  
+  tasks:
+    - name: creating user using with_dict
+      user:
+        name: "{{ item.key }}"
+        comment: "{{ item.value.comments }}"
+      with_dict: 
+        sumantakumar:   # this is a dictionary 
+          comments: this is a normal user   # this is in key value pair
+        smita:
+          comments: this is a normal user
+        akhilesh:
+          comments: this is a normal user
+      tags: create_user
+
+    - name: delete user using with_items
+      user: 
+        name: "{{ item }}"        
+        state: absent
+        remove: yes
+      with_items:                # list argument in yaml form
+        - sumantakumar
+        - smita
+        - akhilesh
+      tags:  delete_user

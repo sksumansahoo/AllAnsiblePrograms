@@ -1,0 +1,31 @@
+Instate of mentioning everything in hosts/inventory file  
+we can mention groupvars and hostvars in two different folders
+Bydefault ansible-playbook command look for  group_vars/ and host_vars/ directory in the current working directory
+But the other Ansible commands like ansible, ansible-console, etc look for  group_vars/ and host_vars/ directory inside the inventory directory.
+
+group_vars/              # in this folder
+|--yamlnodes (ex it is the group1 )
+|--jenkinsmaster (ex it is the group2)
+
+host_vars/  # in this folder
+|--jenkinMaster ( ex it is the indivisual host )
+|--jenkinslave2 ( ex it is the indivisual host )
+
+
+vi host_vars/jenkinslave2   ( ex content present in the file )
+---
+ansible_port: 22
+
+vi host_vars/jenkinsMaster
+---
+ansible_connection: local
+
+
+vi group_vars/yamlnodes
+---
+ansible_user: root
+
+vi group_vars/jenkinsmaster
+---
+ansible_become: true
+ansible_become_pass: suman345

@@ -1,0 +1,32 @@
+# we can get the  host names using    ansible  -i  /home/ujam/hosts.yml  all  -a "hostname -s" -o
+#                                or
+# we can use      ansible -i /home/ujam/hosts.yml control -m setup | grep -i host
+# To know the operating system          ansible -i /home/ujam/hosts.yml control -m setup | grep -i distribution 
+
+---
+- hosts: yamlnodes
+  gather_facts: true
+
+  vars:
+    masg1: " welcome to jenkinslave1 "
+    masg2: " welcome to jenkinslave2 "
+
+  tasks:
+    - name: configure slave1
+      copy:
+        content: "{{ masg1 }}"
+        dest: /tmp/msg2slave
+      notify: masg copied
+      when: ansible_distribution == "CentOS" and ansible_hostname == "jenkinslave1"
+
+    - name: configure slave2
+      copy:
+        content: "{{ masg2 }}"
+        dest: /tmp/msg2slave
+      notify: masg copied
+      when: ansible_distribution == "CentOS" and ansible_hostname == "jenkinslave2"
+
+  handlers:
+    - name: masg copied
+      debug:
+        msg: the wellcome message has been copied

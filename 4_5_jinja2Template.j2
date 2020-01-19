@@ -1,0 +1,87 @@
+--== Ansible jinja2 if condition ==--
+
+{# This is a comment in jinja2 -#}
+
+{% if ansible_hostname == 'yamlServer' -%}
+ This is the ansible server
+{% endif %}
+
+--== Ansible jinja2 if elif condition ==--
+
+{% if ansible_hostname == 'yamlServer' -%}
+ This is the ansible server
+{% elif ansible_hostname == 'jenkinMaster' -%}
+ This is the jenkin master server
+{% endif %}
+
+--== Ansible jinja2 if elif condition ==--
+
+{% if ansible_hostname == 'yamlServer' -%}
+ This is the ansible server
+{% elif ansible_hostname == 'jenkinMaster' -%}
+ This is the jenkin master server
+{% else -%}
+ this is the {{ ansible_hostname }}
+{% endif %}
+
+
+ --== Ansible jinja2 for loop ==--
+ {% for i in ansible_all_ipv4_addresses -%}
+IP address entry {{ loop.index }} = {{ i }}
+ {% endfor %}
+
+
+ --== Ansible jinja2 for loop using range() ==--
+ {% for i in range(1,11) -%}
+value is = {{ i }}
+ {% endfor %}
+
+--== Ansible jinja2 for loop in reverse counting ==--
+{% for i in range(11, 1, -1) -%}
+ value is = {{ i }}
+{% endfor %}
+
+ --== Ansible jinja2 for loop using break ==--
+ {% for i in range(11, 1, -1) -%}
+{% if i == 5 -%}
+ {% break %}
+{% else -%}
+ value is = {{ i }}
+{% endif %}
+ {% endfor %}
+
+--== Ansible jinja2 for loop using continue ==--
+{% for i in range(11, 1, -1) -%}
+ {% if i is odd -%}
+{% continue %}
+ {% else -%}
+value is = {{ i }}
+ {% endif %}
+{% endfor %} 
+
+
+--== Ansible jinja2 filters ==--
+
+--== min [1,2,3,4,5] ==--
+
+{{ [1,2,3,4,5] | min }}
+
+--== max [1,2,3,4,5] ==--
+
+{{ [1,2,3,4,5] | max }}
+
+--== unique [1,1,2,2,3,3,4,5,4,5] ==--
+
+{{ [1,1,2,2,3,3,4,5,4,5] | unique }}
+
+--== difference [1,2,3,4,5] vs [2,3,4,5,6] ==--
+
+{{ [1,2,3,4,5] | difference([2,3,4,5,6]) }}
+
+--== random ['sumanta', 'smita' , 'akhilesh'] ==--
+
+{{ ['sumanta', 'smita' , 'akhilesh'] | random }}
+
+--== urlsplit hostname ==--
+
+{{ "https://docs.ansible.com/ansible/latest/user_guide/playbooks_filters.html" | urlsplit('hostname') }}

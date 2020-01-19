@@ -1,0 +1,3 @@
+#!/bin/bash
+echo [current_date]
+echo current_date=`date`

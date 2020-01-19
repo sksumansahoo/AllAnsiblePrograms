@@ -1,0 +1,28 @@
+# In ansible tasks executed in linear form means each one task execute for  all the hosts specified in
+# the program before going to other task
+
+# we can make the liner process faster by using the  forks = N ( N is a number ) in anisble.cfg file
+# EX -- forks = 3 means at a time 3 hosts will execute in linearly 
+
+# if we use serial module in the playbook then we will able to execut that many no of hosts linearly
+# serial module can take a list in form of numbers or percentile
+
+---
+- hosts: all
+  gather_facts: true
+
+#  serial: 2
+  serial: 
+    - 1
+    - 1
+    - 2
+
+  tasks:
+    - name: task 1 
+      command:  /bin/sleep 10
+
+    - name: task 2
+      command: /bin/sleep 15
+
+    - name: task 3
+      command: /bin/sleep 10

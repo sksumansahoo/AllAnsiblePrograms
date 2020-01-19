@@ -1,0 +1,13 @@
+##############################
+# Common configuration
+# Bydefault ansible-playbook command look group_vars/ and host_vars/ directory in the current working directory
+# But other Ansible commands like ansible, ansible-console, etc look group_vars/ and host_vars/ directory 
+# inside the inventory directory.  
+##############################
+---
+
+tomcat:
+  software:
+    source: https://archive.apache.org/dist/tomcat/tomcat-9/v9.0.11/bin/apache-tomcat-9.0.11.tar.gz
+    certs:
+      validate: false

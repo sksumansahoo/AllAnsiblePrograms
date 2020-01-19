@@ -1,0 +1,22 @@
+---
+- hosts: control
+  gather_facts: false
+
+  tasks:
+    - name: test the extra vars 
+      debug:
+        msg: "{{ extraVarKey }}"
+
+
+
+
+# below way we can execut the script
+ 
+ # ansible-playbook -i /home/ujam/hosts.yml 2_10_variable_extra_var.yml  -e 'extraVarKey="this is the value for the extra variable "'
+ # ansible-playbook -i /home/ujam/hosts.yml 2_10_variable_extra_var.yml  -e '{"extraVarKey":"this is the value for the extra variable "}'
+
+# 2_10_extraVar.yml and 2-10_extraVar.json are the two files 
+
+ # ansible-playbook -i /home/ujam/hosts.yml 2_10_variable_extra_var.yml  -e @2_10_extraVar.yml
+ # ansible-playbook -i /home/ujam/hosts.yml 2_10_variable_extra_var.yml  -e @2_10_extraVar.json
+ 

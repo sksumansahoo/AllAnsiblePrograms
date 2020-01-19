@@ -1,0 +1,24 @@
+# with_items loop takes a list as argument 
+# in this example we are creating the user using  with_items loop
+
+---
+- hosts: yamlnodes
+  become: true
+  
+  tasks:
+    - name: creating user using with_items
+      user:
+        name: "{{ item }}"
+      with_items: [ 'sumantakumar' , 'smita' , 'akhilesh' ]  # list argument in python form
+      tags: create_user
+
+    - name: delete user using with_items
+      user: 
+        name: "{{ item }}"        
+        state: absent
+        remove: yes
+      with_items:                # list argument in yaml form
+        - sumantakumar
+        - smita
+        - akhilesh
+      tags:  delete_user

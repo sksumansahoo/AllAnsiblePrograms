@@ -1,0 +1,25 @@
+# vars_prompt  module use to accept user input 
+# the parameter "private" bydefult is true so the user input is invisible to make it visible we need to set it false
+# The prompt will prompt the message 
+
+---
+- hosts: control
+  gather_facts: false
+
+  vars_prompt:
+    - name: userName
+      prompt: " please enter the  user name "
+      private: false
+
+    - name: passWord
+      prompt: " enter the password"
+      private: true
+
+  tasks:
+    - name: take user name as input
+      debug:
+        msg: "user name is {{ userName }}"
+
+    - name: take password as input
+      debug:
+        msg: "password is {{ passWord }}"

@@ -1,0 +1,34 @@
+# block ------- act as try ( Blocks only deal with failed status of a task)
+# rescue ------ act as catch ( This will revert the failed status of the task for the run and the play will continue as if it had succeeded )
+# always ------ act as fatch ( that will run no matter what the task status is )
+
+---
+- hosts: 192.168.33.99
+
+  tasks:
+    - name: install patch and python-dns
+      block:
+        - name: install patch
+          package:
+            name: patch
+
+        - name: install python-dns
+          package:
+            name: python-dnspython
+
+      rescue:
+        - name: rollback patch
+          package:
+            name: patch
+            state: absent
+
+        - name: rollback python-dnspython
+          package:
+            name: python-dnspython
+            state: absent
+
+      always:
+        - debug:
+            msg: always section runs regardless
+
+ 

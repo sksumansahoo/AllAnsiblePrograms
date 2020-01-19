@@ -1,0 +1,11 @@
+# loop using until_retries
+
+---
+- hosts: control
+  
+  tasks:
+    - name: ran the script using until loop
+      script: 6_9_random.sh
+      register: output
+      retries: 10
+      until: output.stdout.find("7") != -1

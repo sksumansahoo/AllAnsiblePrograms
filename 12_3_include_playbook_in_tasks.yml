@@ -1,0 +1,23 @@
+---
+
+- hosts: 192.168.33.97
+
+  tasks:
+    - name: Include playbook in tasks
+      debug:
+        msg: include task file 12_0_taskFile.yml in the playbook tasks
+
+#    include_tasks is dynamic
+    - include_tasks: 12_0_taskFile.yml   # include a task file inside the playbook
+
+#    include is static
+#    - include: 12_0_taskFile.yml
+
+    - name: count no of file in the directory
+      shell: |
+             ls -1 | wc -l
+      args:
+        chdir: /home/ujam/workInsideTheDir/allYamlPrograms
+      register: theCount
+    - debug:         # var=theCount
+        msg: "cout is {{ theCount.stdout }}"

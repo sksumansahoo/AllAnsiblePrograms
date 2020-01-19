@@ -1,0 +1,26 @@
+# In ansible tasks executed in linear form means each one task execute for  all the hosts specified in
+# the program before going to other task
+
+---
+- hosts: linux
+  
+  tasks:
+    - name: task 1 
+      command:  /bin/sleep 10
+      when: ansible_hostname == 'jenkinMaster'
+      async: 15                 # time out for the task 
+      poll: 1                   # if poll value is positive, the playbook will stick to the patricular
+                                # task until it either completes, fails or times out.
+                                # when the poll value is positive the task will run in linear mode
+
+    - name: task 2
+      command: /bin/sleep 15
+      when: ansible_hostname == 'jenkinslave1'
+      async: 20
+      poll: 1
+
+    - name: task 3
+      command: /bin/sleep 10
+      when: ansible_hostname == 'jenkinslave2'
+      async: 15
+      poll: 1

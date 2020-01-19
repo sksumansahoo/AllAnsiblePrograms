@@ -1,0 +1,18 @@
+---
+thekey: value of the key 
+
+extDict:
+  dictKey1: value of the 1st key in dictionary
+  dictKey2: value of the 2nd key in dictionary
+
+extInlineDict:
+  {inlineKey1: value of the 1st key in inline dictionary, inlineKey2: value of the 2nd key in inline dictionary}
+
+extList:
+  - extLitem1
+  - extLitem2
+  - extLitem3
+
+extInlineList:
+  [inlineLitem1 ,inlineLitem2, inlineLitem3]
+

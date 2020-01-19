@@ -1,0 +1,26 @@
+---
+
+  - name: check tomcat is present or not
+    stat:
+      path: /opt/apache-tomcat/apache-tomcat-9.0.11/bin/
+    register: dirStat
+  - debug: var=dirStat
+
+  - name: install tomcat if not present
+    include_tasks: installTomcat.yml
+    when: dirStat.stat.exists == false
+
+  - name: Change mode for startup and shutdown script
+    file:
+      path: "{{ item }}"
+      mode: 0777
+      owner: root
+      group: root
+    with_items:
+      - '/opt/apache-tomcat/apache-tomcat-9.0.11/bin/shutdown.sh'
+      - '/opt/apache-tomcat/apache-tomcat-9.0.11/bin/startup.sh'
+      - '/opt/apache-tomcat/apache-tomcat-9.0.11/bin/catalina.sh'
+    when: dirStat.stat.exists == true
+
+  - include_tasks: stopStartTomcat.yml
+

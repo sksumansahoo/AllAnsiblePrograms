@@ -1,0 +1,22 @@
+# The handlers execute at the end and it holds the result of last task
+# task should have a 'notify'  which is handeled in 'handlers' section
+
+---
+- hosts: control
+  gather_facts: false
+
+  vars:
+    message: " we are reading handler in ansible \n "
+
+  tasks:
+    - name: configure the message
+      copy:
+        content: "{{ message }}"
+        dest: /tmp/handlerDemo
+      notify: config message
+
+  handlers:
+    - name: config message  # notify value and name list value should be same
+      debug:
+        msg: The message is added
+

@@ -1,0 +1,52 @@
+# with_subelements loop is usefull when the you have the context which can pass as outer loop first and
+# then you can pass the inner loop 
+
+# Adventage in with_subelements is, we can expand the subelements
+
+# in this example we are creating the user using  with_subelements loop
+
+---
+- hosts: yamlnodes
+  become: true
+  
+  tasks:
+    - name: creating user using with_subelements
+      user:
+        name: "{{ item.1 }}"
+        comment: "{{ item.1 | title }} {{ item.0.comments }}"
+      with_subelements: 
+        - family:                                      # this is a list of dictionary 
+            comments: this is a normal user              # this is in key value pair
+            username:                                    # this is the subelement dictionary 
+             - sumantakumar
+             - smita
+             - akhilesh
+        - username
+      tags: create_user
+
+    - name: create user using with_subelements by expanding the subelements
+      user:
+        name: "{{ item.1 }}"
+        comment: "{{ item.1 | title }} {{ item.0.comments }}"
+      with_subelements:
+        - 
+          - comments: this is normal user
+            username:
+             - sumantakumar
+             - akhilesh
+          - comments: this is group user
+            username:
+             - smita
+        - username
+      tags: expand_subelement
+
+    - name: delete user using with_items
+      user: 
+        name: "{{ item }}"        
+        state: absent
+        remove: yes
+      with_items:                # list argument in yaml form
+        - sumantakumar
+        - smita
+        - akhilesh
+      tags:  delete_user

@@ -1,0 +1,39 @@
+# with_sequence loop generate a sequence of numbers form the given starting and ending number
+
+# in this example we are creating a sequence of directory using with_sequence loop
+
+---
+- hosts: yamlnodes
+  become: true
+
+  tasks:
+    - name: create an user
+      user:
+        name: "{{ item.key }}"
+        comment: "{{ item.value.comments }}"
+      with_dict:
+        smita:
+          comments: this is a normal user
+
+    - name: create a sequence of directory using with_sequence loop
+      file:
+        dest: "/home/smita/sequence_{{ item }}"
+        state: directory
+      with_sequence: start=0  end=30 stride=10  # stride indicate the interval
+
+#                    we can use any of this ( full path in dest  or mention format )
+#                    In format %d -- decimal , %x - hexa decimal
+
+    - name: create a sequence of directory using with_sequence loop
+      file:
+        dest: "{{ item }}"
+        state: directory
+      with_sequence: start=0 end=30 stride=15 format=/home/smita/dir_%d     
+
+# use of count option in  with_squence 
+ 
+    - name: create a sequence of directory using with_sequence loop having count option
+      file:
+        dest: "{{ item }}"
+        state: directory
+      with_sequence: count=3 format=/home/smita/countDir_%x

@@ -1,0 +1,16 @@
+---
+- hosts: control
+
+  tasks:
+    - name: send a mail to the gmail account
+      mail:
+        host: smtp.gmail.com
+        port: 587
+        secure: starttls
+        charset: utf-8
+        sender: sumanta.sahoo98@gmail.com
+        username: sumanta.sahoo98@gmail.com
+        password: SaraswatiSahoo
+        to: sumanta sahoo <sumanta.sahoo98@gmail.com>
+        subject: ansible report
+        body: System {{ ansible_hostname }} has been successfully provisioned.

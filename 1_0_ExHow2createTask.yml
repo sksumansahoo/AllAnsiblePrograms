@@ -1,0 +1,28 @@
+# Structure of  ansible playbook
+#  ---
+#  - hosts: hostName/group
+#    vars:  # to declare the variabels
+#    
+#    tasks: # to perform the task on the metioned hosts
+#    
+#    handlers: # to notify about the task complition
+#
+#    roles:    # list of roles need to be imported
+
+
+---
+- hosts: control
+  gather_facts: false
+  
+  tasks:
+    - name: copy the file from source to destination
+      copy:
+        src: 1_0_demofile
+        dest: /tmp/testDemo
+
+    - name: adding message to a file using content module
+      copy:
+        content: wecome to the first chapter for anisble
+        dest: /tmp/testDemo2
+
+#  Now check the difference in /tmp/testDemo and /tmp/testDemo2  we will see no new line in testDemo2 file

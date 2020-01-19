@@ -1,0 +1,23 @@
+---
+- hosts: linux
+
+  tasks:
+    - name: First block of modules executed
+      block:
+        - name: example with when condition inside the block
+          debug:
+            msg: this is centOs and ansible_hostname is  {{ ansible_hostname }}
+          when: ansible_distribution == 'CentOS' and ansible_hostname == 'jenkinslave2'
+
+        - name: example using with_items
+          debug:
+            msg: item {{ item }} execute for {{ ansible_hostname }}
+          with_items: ['a','b','c'] 
+
+    - name: Second block of the modules executed
+      block:
+        - name: example using with_items in second block
+          debug:
+            msg: item is  {{ item }}
+          with_items: [1,2,3]
+      when:  ansible_distribution == 'CentOS' and ansible_hostname == 'jenkinslave1'

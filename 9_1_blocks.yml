@@ -1,0 +1,29 @@
+# blocks allow for logical grouping of tasks 
+
+# it is helpful for handle the error
+
+---
+- hosts: 192.168.33.97
+
+  tasks:
+    - name: create a directory and copy the files into that directory
+      block:
+        - name: create the directory
+          file:
+            path: /home/ujam/workInsideTheDir/allYamlPrograms
+            state: directory 
+            owner: ujam
+            group: ujam
+            recurse: true
+
+        - name: copy the files form local to remote  ( transfer file from one server to other server )
+          synchronize: src=/home/ujam/ansibleDir/playbooks/  dest=/home/ujam/workInsideTheDir/allYamlPrograms/
+          delegate_to: 192.168.33.60              # localhost
+
+###################Copy file Remote-To-Remote###############################
+#- hosts: serverB
+#  tasks:    
+#   - name: Copy Remote-To-Remote (from serverA to serverB)
+#     synchronize: src=/copy/from_serverA dest=/copy/to_serverB
+#     delegate_to: serverA
+#######################################################################

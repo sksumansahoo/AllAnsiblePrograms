@@ -1,0 +1,39 @@
+# To perform a task on one host with reference to other hosts, use the 'delegate_to' keyword on a task.
+
+# Benefit
+# By performing task on other node we can place nodes in a load balanced pool.
+# It is also very useful for controlling outage windows. 
+# Use of 'serial' keyword with 'delegate_to' is also a good idea  to control the number of hosts executing at one time.
+
+---
+- hosts: yamlnodes
+  
+  tasks:
+    - name: get hostname and ip address and add it to DNS
+      command: "hostname -i dynamic_{{ ansible_hostname }}:{{ ansible_default_ipv4.address }}"
+      delegate_to: 192.168.33.95  # as DNS is not configured here IP address is mentioned
+
+    - name: reload the dns mask
+      service:
+        name: 192.168.33.95
+        state: reloaded
+      delegate_to: 192.168.33.95
+      run_once: true   # as name says it will run once 
+
+# please check dnspython module is installed or not  if not execute 'pip install dnspython' 
+
+    - name: check the DNS entries for all the hosts
+      debug:
+        msg: " The IPV4  address for dynamic_{{ item }} is  {{  lookup('dig' , 'dynamic_{{ item }}.') }}"
+      with_items:  "{{ play_hosts }}"  # play_hosts is a magic variable to catch all the hosts in the play 
+
+    - name: remove dynamic dns rule
+      command: "hostname -r dynamic_{{ ansible_hostname }}"
+      delegate_to: 192.168.33.95
+
+    - name: reload the dns mask
+      service:
+        name:  192.168.33.95
+        state: reloaded
+      delegate_to: 192.168.33.95
+      run_once: true

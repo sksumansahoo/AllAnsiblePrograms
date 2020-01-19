@@ -1,0 +1,23 @@
+---
+- hosts: control
+  gather_facts: false
+
+  vars:
+    thelist:   # declare the list in yaml format
+      - listvalue1
+      - listvalue2
+      - listvalue3
+
+  tasks:
+    - name: get the value of the list
+      debug:
+        msg: "{{ thelist }}"
+
+    - name: get the value of the list value using yaml "thelist.0"
+      debug:
+        msg: "{{ thelist.0 }}"
+
+    - name: get the value of the list value using python form "thelist[2]"
+      debug:
+        msg: "{{ thelist[2] }}"
+

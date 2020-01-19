@@ -1,0 +1,17 @@
+---
+- hosts:  192.168.33.97
+
+  tasks:
+    - name: check the directory is exist or not
+      stat:  
+        path: /home/ujam/workInsideTheDir/allYamlPrograms
+      register: dirStat
+
+    - name: result  
+      debug:
+        msg: >
+            {% if dirStat.stat.exists == true -%}
+               directory is exsit 
+            {% else -%}
+               directory is not exist
+            {% endif %}

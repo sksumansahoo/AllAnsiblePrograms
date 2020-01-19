@@ -1,0 +1,19 @@
+---
+- hosts: linux
+  gather_facts: true
+
+  tasks:
+    - name: when expression with list of arguments
+      command: hostname -s
+      when:
+        - ansible_distribution == "CentOS"
+        - ansible_distribution_major_version | int >= 7
+      register: result2
+
+
+    - name: Install patch when changed 
+      yum:
+        name: patch
+        state: present
+      when: result2.changed 
+#      when: result2 is changed           

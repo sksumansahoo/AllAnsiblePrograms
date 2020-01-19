@@ -1,0 +1,9 @@
+---
+
+  - name: stop tomcat
+    command: nohup /opt/apache-tomcat/apache-tomcat-9.0.11/bin/shutdown.sh
+    tags: shutdown_tomcat
+
+  - name: start tomcat
+    command: nohup /opt/apache-tomcat/apache-tomcat-9.0.11/bin/startup.sh
+    tags: startup_tomcat

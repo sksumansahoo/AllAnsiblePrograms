@@ -1,0 +1,17 @@
+---
+- hosts: all
+  gather_facts: true
+
+  tasks:
+    - name: register the module ouput to a variable
+      command: hostname -s
+      register: result
+
+    - name: print the register variable value
+      debug:
+        var: result
+
+    - name: print the stdout of the register variable 
+      debug:
+        var: result.stdout
+

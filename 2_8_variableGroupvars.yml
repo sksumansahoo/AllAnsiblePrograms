@@ -1,0 +1,12 @@
+# groupvars can access directly 
+## The variable which is access by groupvar can able to access by hostvar 
+
+
+---
+- hosts: yamlnodes
+  gather_facts: true
+
+  tasks:
+    - name: checking groupvars
+      debug:
+        msg: "{{ ansible_hostname }}" 

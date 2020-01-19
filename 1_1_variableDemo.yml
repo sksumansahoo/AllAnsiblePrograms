@@ -1,0 +1,22 @@
+# We use  "vars" dictionary to declare a variable in ansible 
+
+---
+- hosts: control
+  gather_facts: false
+
+  vars:                   # below variable declared in key value format
+    message: " we are reading variable in ansible \n"   # string need to be in double quote when we specify new line character
+
+  tasks:
+    - name: configure the message 
+      copy:
+        content: "{{ message }}"  # accessing the variable in  jinja2 format
+        dest: /tmp/varDemo
+
+
+# If we want to pass the value of the variable from command line, that can be done as below
+
+# ansible-playbook -i /home/ujam/hosts.yml  1_1_variableDemo.yml  -e 'message="double quote the string when we specify new line character"'
+#                                   or
+#ansible-playbook -i /home/ujam/hosts.yml  1_1_variableDemo.yml  --extra-vars='message="double quot when we specify new line character"'
+

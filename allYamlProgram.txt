@@ -1,0 +1,2272 @@
+./1_0_ExHow2createTask.yml
+==================================================
+# Structure of  ansible playbook
+#  ---
+#  - hosts: hostName/group
+#    vars:  # to declare the variabels
+#    
+#    tasks: # to perform the task on the metioned hosts
+#    
+#    handlers: # to notify about the task complition
+#
+#    roles:    # list of roles need to be imported
+
+
+---
+- hosts: control
+  gather_facts: false
+  
+  tasks:
+    - name: copy the file from source to destination
+      copy:
+        src: 1_0_demofile
+        dest: /tmp/testDemo
+
+    - name: adding message to a file using content module
+      copy:
+        content: wecome to the first chapter for anisble
+        dest: /tmp/testDemo2
+
+#  Now check the difference in /tmp/testDemo and /tmp/testDemo2  we will see no new line in testDemo2 file
+=======================================
+
+./1_0_demofile
+==================================================
+I am reading ansible
+=======================================
+
+./1_1_variableDemo.yml
+==================================================
+# We use  "vars" dictionary to declare a variable in ansible 
+
+---
+- hosts: control
+  gather_facts: false
+
+  vars:                   # below variable declared in key value format
+    message: " we are reading variable in ansible \n"   # string need to be in double quote when we specify new line character
+
+  tasks:
+    - name: configure the message 
+      copy:
+        content: "{{ message }}"  # accessing the variable in  jinja2 format
+        dest: /tmp/varDemo
+
+
+# If we want to pass the value of the variable from command line, that can be done as below
+
+# ansible-playbook -i /home/ujam/hosts.yml  1_1_variableDemo.yml  -e 'message="double quote the string when we specify new line character"'
+#                                   or
+#ansible-playbook -i /home/ujam/hosts.yml  1_1_variableDemo.yml  --extra-vars='message="double quot when we specify new line character"'
+
+=======================================
+
+./1_2_handlerDemo.yml
+==================================================
+# The handlers execute at the end and it holds the result of last task
+# task should have a 'notify'  which is handeled in 'handlers' section
+
+---
+- hosts: control
+  gather_facts: false
+
+  vars:
+    message: " we are reading handler in ansible \n "
+
+  tasks:
+    - name: configure the message
+      copy:
+        content: "{{ message }}"
+        dest: /tmp/handlerDemo
+      notify: config message
+
+  handlers:
+    - name: config message  # notify value and name list value should be same
+      debug:
+        msg: The message is added
+
+=======================================
+
+./1_3_variableTaskHandler.yml
+==================================================
+# we can get the  host names using    ansible  -i  /home/ujam/hosts.yml  all  -a "hostname -s" -o
+#                                or
+# we can use      ansible -i /home/ujam/hosts.yml control -m setup | grep -i host
+# To know the operating system          ansible -i /home/ujam/hosts.yml control -m setup | grep -i distribution 
+
+---
+- hosts: yamlnodes
+  gather_facts: true
+
+  vars:
+    masg1: " welcome to jenkinslave1 "
+    masg2: " welcome to jenkinslave2 "
+
+  tasks:
+    - name: configure slave1
+      copy:
+        content: "{{ masg1 }}"
+        dest: /tmp/msg2slave
+      notify: masg copied
+      when: ansible_distribution == "CentOS" and ansible_hostname == "jenkinslave1"
+
+    - name: configure slave2
+      copy:
+        content: "{{ masg2 }}"
+        dest: /tmp/msg2slave
+      notify: masg copied
+      when: ansible_distribution == "CentOS" and ansible_hostname == "jenkinslave2"
+
+  handlers:
+    - name: masg copied
+      debug:
+        msg: the wellcome message has been copied
+=======================================
+
+./2_0_variable.yml
+==================================================
+---
+- hosts: linux
+  gather_facts: false
+
+  vars:
+    exKey: this is an example value   # this is key value pair
+
+  tasks:
+    - name: Test the dictionary key value
+      debug:
+        msg: "{{ exKey }}"
+=======================================
+
+./2_10_extraVar.json
+==================================================
+{
+   "extraVarKey": " This is the value of extra var "
+}
+=======================================
+
+./2_10_extraVar.yml
+==================================================
+---
+extraVarKey: This is th value of extra variable
+=======================================
+
+./2_10_variable_extra_var.yml
+==================================================
+---
+- hosts: control
+  gather_facts: false
+
+  tasks:
+    - name: test the extra vars 
+      debug:
+        msg: "{{ extraVarKey }}"
+
+
+
+
+# below way we can execut the script
+ 
+ # ansible-playbook -i /home/ujam/hosts.yml 2_10_variable_extra_var.yml  -e 'extraVarKey="this is the value for the extra variable "'
+ # ansible-playbook -i /home/ujam/hosts.yml 2_10_variable_extra_var.yml  -e '{"extraVarKey":"this is the value for the extra variable "}'
+
+# 2_10_extraVar.yml and 2-10_extraVar.json are the two files 
+
+ # ansible-playbook -i /home/ujam/hosts.yml 2_10_variable_extra_var.yml  -e @2_10_extraVar.yml
+ # ansible-playbook -i /home/ujam/hosts.yml 2_10_variable_extra_var.yml  -e @2_10_extraVar.json
+ 
+=======================================
+
+./2_1_variableDict.yml
+==================================================
+---
+- hosts: control
+  gather_facts: false
+
+  vars:
+    thedict:   # declare the dictionary in yaml format
+      dictkey1: this is the value of dictionary first key
+      dictkey2: this is the value of dictionary second key
+
+  tasks:
+    - name: get the value of the dictionary
+      debug:
+        msg: "{{ thedict }}"
+
+    - name: get the value of the dictionary key using yaml "thedict.dictkey"
+      debug:
+        msg: "{{ thedict.dictkey1 }}"
+
+    - name: get the value of the dictionary key using python form "thedict['dictkey']"
+      debug:
+        msg: "{{ thedict['dictkey2'] }}"
+
+=======================================
+
+./2_2_variableDict.yml
+==================================================
+---
+- hosts: control
+  gather_facts: false
+
+  vars:
+    thedict:   # declare the dictionary in python format
+     { dictkey1: this is the value of dictionary first key ,  dictkey2: this is the value of dictionary second key }
+
+  tasks:
+    - name: get the value of the dictionary
+      debug:
+        msg: "{{ thedict }}"
+
+    - name: get the value of the dictionary key using yaml "thedict.dictkey"
+      debug:
+        msg: "{{ thedict.dictkey1 }}"
+
+    - name: get the value of the dictionary key using python form "thedict['dictkey']"
+      debug:
+        msg: "{{ thedict['dictkey2'] }}"
+
+=======================================
+
+./2_3_variablelist.yml
+==================================================
+---
+- hosts: control
+  gather_facts: false
+
+  vars:
+    thelist:   # declare the list in yaml format
+      - listvalue1
+      - listvalue2
+      - listvalue3
+
+  tasks:
+    - name: get the value of the list
+      debug:
+        msg: "{{ thelist }}"
+
+    - name: get the value of the list value using yaml "thelist.0"
+      debug:
+        msg: "{{ thelist.0 }}"
+
+    - name: get the value of the list value using python form "thelist[2]"
+      debug:
+        msg: "{{ thelist[2] }}"
+
+=======================================
+
+./2_4_variablelist.yml
+==================================================
+---
+- hosts: control
+  gather_facts: false
+
+  vars:
+    thelist:   # declare the list in pythom format
+      [listvalue1 , listvalue2 , listvalue3]
+
+  tasks:
+    - name: get the value of the list
+      debug:
+        msg: "{{ thelist }}"
+
+    - name: get the value of the list value using yaml "thelist.0"
+      debug:
+        msg: "{{ thelist.0 }}"
+
+    - name: get the value of the list value using python form "thelist[2]"
+      debug:
+        msg: "{{ thelist[2] }}"
+
+=======================================
+
+./2_5_exterVarFile.yml
+==================================================
+---
+thekey: value of the key 
+
+extDict:
+  dictKey1: value of the 1st key in dictionary
+  dictKey2: value of the 2nd key in dictionary
+
+extInlineDict:
+  {inlineKey1: value of the 1st key in inline dictionary, inlineKey2: value of the 2nd key in inline dictionary}
+
+extList:
+  - extLitem1
+  - extLitem2
+  - extLitem3
+
+extInlineList:
+  [inlineLitem1 ,inlineLitem2, inlineLitem3]
+
+=======================================
+
+./2_5_variableFromFile.yml
+==================================================
+# Read variable from file using  vars_files
+
+---
+- hosts: control
+  gather_facts: false
+
+  vars_files:
+    - 2_5_exterVarFile.yml
+
+  tasks:
+    - name: get the value of the key from external file
+      debug:
+        msg: "{{ thekey }}"
+   
+    - name: get the value of the dictionary from external file
+      debug:
+        msg: "{{ extDict }}"
+
+    - name: get the value of the dictionary key from external file in yaml format extDict.dictKey1
+      debug:
+        msg: "{{ extDict.dictKey1 }}"
+
+    - name: get the value of the dictionary key from external file in python format extDict['dictKey2']
+      debug:
+        msg: "{{ extDict['dictKey2'] }}"
+
+    - name: get the value of the inline dictionary from external file
+      debug:
+        msg: "{{ extInlineDict }}"
+
+    - name: get the value of the inline dictionary key from external file in yaml format extInlineDict.inlineKey1
+      debug:
+        msg: "{{ extInlineDict.inlineKey1 }}"
+
+    - name: get the value of the inline dictionary key from external file in python format extInlineDict['inlineKey2']
+      debug:
+        msg: "{{ extInlineDict['inlineKey2'] }}"
+
+    - name: get the value of the list from external file
+      debug:
+        msg: "{{ extList }}"
+
+    - name: get the value of 1st element the list from external file in yaml format extList.0
+      debug:
+        msg: "{{ extList.0 }}"
+
+    - name: get the value of the list from external file in python format extList[2]
+      debug:
+        msg: "{{ extList[2] }}"
+
+    - name: get the value of the inline list from external file
+      debug:
+        msg: "{{ extInlineList }}"
+
+    - name: get the value of 1st element of the inlineList from external file in yaml format extInlineList.1
+      debug:
+        msg: "{{ extInlineList.1 }}"
+
+    - name: get the value of 2nd the inline list from external file in python format extInlineList[2]
+      debug:
+        msg: "{{ extInlineList[2] }}"
+   
+=======================================
+
+./2_6_variablePromptUserInput.yml
+==================================================
+# vars_prompt  module use to accept user input 
+# the parameter "private" bydefult is true so the user input is invisible to make it visible we need to set it false
+# The prompt will prompt the message 
+
+---
+- hosts: control
+  gather_facts: false
+
+  vars_prompt:
+    - name: userName
+      prompt: " please enter the  user name "
+      private: false
+
+    - name: passWord
+      prompt: " enter the password"
+      private: true
+
+  tasks:
+    - name: take user name as input
+      debug:
+        msg: "user name is {{ userName }}"
+
+    - name: take password as input
+      debug:
+        msg: "password is {{ passWord }}"
+=======================================
+
+./2_7_grouvars_hostvars
+==================================================
+Instate of mentioning everything in hosts/inventory file  
+we can mention groupvars and hostvars in two different folders
+Bydefault ansible-playbook command look for  group_vars/ and host_vars/ directory in the current working directory
+But the other Ansible commands like ansible, ansible-console, etc look for  group_vars/ and host_vars/ directory inside the inventory directory.
+
+group_vars/              # in this folder
+|--yamlnodes (ex it is the group1 )
+|--jenkinsmaster (ex it is the group2)
+
+host_vars/  # in this folder
+|--jenkinMaster ( ex it is the indivisual host )
+|--jenkinslave2 ( ex it is the indivisual host )
+
+
+vi host_vars/jenkinslave2   ( ex content present in the file )
+---
+ansible_port: 22
+
+vi host_vars/jenkinsMaster
+---
+ansible_connection: local
+
+
+vi group_vars/yamlnodes
+---
+ansible_user: root
+
+vi group_vars/jenkinsmaster
+---
+ansible_become: true
+ansible_become_pass: suman345
+=======================================
+
+./2_7_variableHostvars.yml
+==================================================
+
+---
+- hosts: jenkinsmaster
+  gather_facts: true
+
+  tasks:
+    - name: collect ansible_port using yaml format
+      debug:
+        msg: "{{ hostvars[ansible_hostname].ansible_port | default('22') }}"
+   
+    - name: collect ansible_port using python format
+      debug:
+        msg: "{{ hostvars[ansible_hostname]['ansible_port'] | default('22') }}"
+=======================================
+
+./2_8_variableGroupvars.yml
+==================================================
+# groupvars can access directly 
+## The variable which is access by groupvar can able to access by hostvar 
+
+
+---
+- hosts: yamlnodes
+  gather_facts: true
+
+  tasks:
+    - name: checking groupvars
+      debug:
+        msg: "{{ ansible_hostname }}" 
+=======================================
+
+./2_9_variableGroupvars.yml
+==================================================
+# groupvars can access directly 
+# The variable which is access by groupvar can able to access by hostvar 
+
+---
+- hosts: yamlnodes
+  gather_facts: true
+
+  tasks:
+    - name: checking groupvars
+      debug:
+        msg: "{{ hostvars[ansible_hostname].ansible_user }}" 
+
+=======================================
+
+./3_1_facts.yml
+==================================================
+#when any module return a dictionary "ansible_facts" then that output will be added 
+# to the scope of the "anisble_facts" variable for that paritcular hosts
+
+---
+- hosts: all
+  gather_facts: true
+
+  tasks:
+    - name: show the ip adress 
+      debug:
+        msg: "{{ ansible_default_ipv4.address }}"
+=======================================
+
+./3_2_customFacts.yml
+==================================================
+# we can write our custom fact in any language which can return the output in 
+# json or ini(yml) structure.   The default path is /etc/ansible/facts.d
+
+# The file getcustomfacts1.fact ( json format ) and  getcustomfacts2.fact ( INI format)
+# copied to  /etc/ansible/facts.d  path
+
+# refresh the setup module
+#==================================
+# ansible -i /home/ujam/hosts.yml control -m setup -a  'filter=ansible_local'
+#                                 or
+# ansible -i /home/ujam/hosts.yml control -m setup | tee /tmp/factRes
+
+
+
+---
+- hosts: control   # we can execute the script in local host for now as the files are not present in other hosts
+  gather_facts: true
+
+  tasks:
+    - name: show custom fact 1
+      debug:
+        msg: "{{ ansible_local.getcustomfacts1.current_date }}"
+
+    - name: show custom fact 2
+      debug:
+        msg: "{{ ansible_local.getcustomfacts2.current_date.current_date }}"
+
+    - name: show custom fact 1 using hostvars
+      debug:
+        msg: "{{ hostvars[ansible_hostname].ansible_local.getcustomfacts1.current_date }}"
+
+    - name: show custom fact 2 using hostvars
+      debug:
+        msg: "{{ hostvars[ansible_hostname].ansible_local.getcustomfacts2.current_date.current_date }}"
+=======================================
+
+./3_3_customFacts.yml
+==================================================
+# we can write our custom fact in any language which can return the output in 
+# json or ini(yml) structure.   The default path is /etc/ansible/facts.d
+
+# The file getcustomfacts1.fact ( json format ) and  getcustomfacts2.fact ( INI format)
+# copied to  /etc/ansible/facts.d  path
+
+# refresh the setup module
+#==================================
+# ansible -i /home/ujam/hosts.yml control -m setup -a  'filter=ansible_local'
+#                                 or
+# ansible -i /home/ujam/hosts.yml control -m setup | tee /tmp/factRes
+
+
+
+---
+- hosts: all
+  gather_facts: true
+
+  become: ujam 
+
+  tasks:
+    - name: create fact dictionary
+      file:
+        path: /etc/ansible/facts.d
+        recurse: yes
+        state: directory
+
+    - name: copy  getcustomfacts1.fact ans  getcustomfacts2.fact to /etc/ansible/facts.d/
+      copy:
+        src: /etc/ansible/facts.d/{{ item }}
+        dest: /etc/ansible/facts.d/
+        mode: a+rwx
+      with_items:
+        - getcustomfacts1.fact 
+        - getcustomfacts2.fact 
+
+    - name: refresh the setup module
+      setup:
+        fact_path: /etc/ansible/facts.d
+
+    - name: show custom fact 1
+      debug:
+        msg: "{{ ansible_local.getcustomfacts1.current_date }}"
+
+    - name: show custom fact 2
+      debug:
+        msg: "{{ ansible_local.getcustomfacts2.current_date.current_date }}"
+
+    - name: show custom fact 1 using hostvars
+      debug:
+        msg: "{{ hostvars[ansible_hostname].ansible_local.getcustomfacts1.current_date }}"
+
+    - name: show custom fact 2 using hostvars
+      debug:
+        msg: "{{ hostvars[ansible_hostname].ansible_local.getcustomfacts2.current_date.current_date }}"
+=======================================
+
+./4_1_jinja2_if_statement.yml
+==================================================
+---
+- hosts: all
+  gather_facts: true
+  
+  tasks:
+    - name: ansible jinja2 if condition
+      debug:
+        msg: > 
+            --== Ansible jinja2 if condition ==--
+    
+            {# This is a comment in jinja2 -#}
+    
+            {% if ansible_hostname == 'yamlServer' -%}
+               This is the ansible server
+            {% endif %}
+    
+    - name: ansible jinja2 if else condition
+      debug:
+        msg: >
+          --== Ansible jinja2 if elif condition ==--
+    
+          {% if ansible_hostname == 'yamlServer' -%}
+             This is the ansible server
+          {% elif ansible_hostname == 'jenkinMaster' -%}
+             This is the jenkin master server
+          {% endif %}
+    
+    - name: ansible jinja2 if elif else condition
+      debug:
+        msg: >
+            --== Ansible jinja2 if elif condition ==--
+    
+            {% if ansible_hostname == 'yamlServer' -%}
+               This is the ansible server
+            {% elif ansible_hostname == 'jenkinMaster' -%}
+               This is the jenkin master server
+            {% else -%}
+               this is the     {{ ansible_hostname }}
+            {% endif %}
+
+=======================================
+
+./4_2_jinja2_for_loop.yml
+==================================================
+
+---
+- hosts: control
+  gather_facts: true
+  
+  tasks:
+    - name: Ansible jinja2 for loop
+      debug:
+        msg: >
+             --== Ansible jinja2 for loop ==--
+             {% for i in ansible_all_ipv4_addresses -%}
+                IP address entry {{ loop.index }} = {{ i }}
+             {% endfor %}
+
+=======================================
+
+./4_3_jinja2_for_loop_range.yml
+==================================================
+
+# to perform looping we need to add  jinja2_extentions = jinja2.ext.loopcontrols in ansible.cfg file
+
+---
+- hosts: control
+  gather_facts: true
+  
+  tasks:
+    - name: Ansible jinja2 for loop using range()
+      debug:
+        msg: >
+             --== Ansible jinja2 for loop using range() ==--
+             {% for i in range(1,11) -%}
+                value is = {{ i }}
+             {% endfor %}
+    
+    - name: Ansible jinja2 for loop in reverse counting
+      debug:
+        msg: >
+              --== Ansible jinja2 for loop in reverse counting ==--
+              {% for i in range(11, 1, -1) -%}
+                 value is = {{ i }}
+              {% endfor %}
+
+    - name: Ansible jinja2 for loop using break
+      debug:
+        msg: >
+             --== Ansible jinja2 for loop using break ==--
+             {% for i in range(11, 1, -1) -%}
+                {% if i == 5 -%}
+                   {% break %}
+                {% else -%}
+                   value is = {{ i }}
+                {% endif %}
+             {% endfor %}
+
+    - name: Ansible jinja2 for loop using continue
+      debug:
+        msg: >
+            --== Ansible jinja2 for loop using continue ==--
+            {% for i in range(11, 1, -1) -%}
+               {% if i is odd -%}
+                  {% continue %}
+               {% else -%}
+                  value is = {{ i }}
+               {% endif %}
+            {% endfor %}   
+    
+    
+=======================================
+
+./4_4_jinja2_default_filter.yml
+==================================================
+---
+- hosts: control
+  gather_facts: false
+
+  tasks:
+    - name: Ansible jinja2 filters
+      debug:
+        msg: >
+            --== Ansible jinja2 filters ==--
+
+            --== min [1,2,3,4,5] ==--
+
+            {{ [1,2,3,4,5] | min }}
+
+            --== max [1,2,3,4,5] ==--
+
+            {{ [1,2,3,4,5] | max }}
+
+            --== unique [1,1,2,2,3,3,4,5,4,5] ==--
+
+            {{ [1,1,2,2,3,3,4,5,4,5] | unique }}
+
+            --== difference [1,2,3,4,5] vs [2,3,4,5,6] ==--
+
+            {{ [1,2,3,4,5] | difference([2,3,4,5,6]) }}
+
+            --== random ['sumanta', 'smita' , 'akhilesh'] ==--
+
+            {{ ['sumanta', 'smita' , 'akhilesh'] | random }}
+
+            --== urlsplit hostname ==--
+
+            {{ "https://docs.ansible.com/ansible/latest/user_guide/playbooks_filters.html" | urlsplit('hostname') }}
+=======================================
+
+./4_5_jinja2Template.j2
+==================================================
+--== Ansible jinja2 if condition ==--
+
+{# This is a comment in jinja2 -#}
+
+{% if ansible_hostname == 'yamlServer' -%}
+ This is the ansible server
+{% endif %}
+
+--== Ansible jinja2 if elif condition ==--
+
+{% if ansible_hostname == 'yamlServer' -%}
+ This is the ansible server
+{% elif ansible_hostname == 'jenkinMaster' -%}
+ This is the jenkin master server
+{% endif %}
+
+--== Ansible jinja2 if elif condition ==--
+
+{% if ansible_hostname == 'yamlServer' -%}
+ This is the ansible server
+{% elif ansible_hostname == 'jenkinMaster' -%}
+ This is the jenkin master server
+{% else -%}
+ this is the {{ ansible_hostname }}
+{% endif %}
+
+
+ --== Ansible jinja2 for loop ==--
+ {% for i in ansible_all_ipv4_addresses -%}
+IP address entry {{ loop.index }} = {{ i }}
+ {% endfor %}
+
+
+ --== Ansible jinja2 for loop using range() ==--
+ {% for i in range(1,11) -%}
+value is = {{ i }}
+ {% endfor %}
+
+--== Ansible jinja2 for loop in reverse counting ==--
+{% for i in range(11, 1, -1) -%}
+ value is = {{ i }}
+{% endfor %}
+
+ --== Ansible jinja2 for loop using break ==--
+ {% for i in range(11, 1, -1) -%}
+{% if i == 5 -%}
+ {% break %}
+{% else -%}
+ value is = {{ i }}
+{% endif %}
+ {% endfor %}
+
+--== Ansible jinja2 for loop using continue ==--
+{% for i in range(11, 1, -1) -%}
+ {% if i is odd -%}
+{% continue %}
+ {% else -%}
+value is = {{ i }}
+ {% endif %}
+{% endfor %} 
+
+
+--== Ansible jinja2 filters ==--
+
+--== min [1,2,3,4,5] ==--
+
+{{ [1,2,3,4,5] | min }}
+
+--== max [1,2,3,4,5] ==--
+
+{{ [1,2,3,4,5] | max }}
+
+--== unique [1,1,2,2,3,3,4,5,4,5] ==--
+
+{{ [1,1,2,2,3,3,4,5,4,5] | unique }}
+
+--== difference [1,2,3,4,5] vs [2,3,4,5,6] ==--
+
+{{ [1,2,3,4,5] | difference([2,3,4,5,6]) }}
+
+--== random ['sumanta', 'smita' , 'akhilesh'] ==--
+
+{{ ['sumanta', 'smita' , 'akhilesh'] | random }}
+
+--== urlsplit hostname ==--
+
+{{ "https://docs.ansible.com/ansible/latest/user_guide/playbooks_filters.html" | urlsplit('hostname') }}
+=======================================
+
+./4_5_jinja2_template_use.yml
+==================================================
+---
+- hosts: control
+  gather_facts: true
+
+  tasks:
+    - name: Use of jinja2 template
+      template:
+        src: 4_5_jinja2Template.j2
+        dest: "/tmp/{{ ansible_hostname }}.out"
+        trim_blocks: true
+
+=======================================
+
+./5_1_register_N_get_register_Output.yml
+==================================================
+---
+- hosts: all
+  gather_facts: true
+
+  tasks:
+    - name: register the module ouput to a variable
+      command: hostname -s
+      register: result
+
+    - name: print the register variable value
+      debug:
+        var: result
+
+    - name: print the stdout of the register variable 
+      debug:
+        var: result.stdout
+
+=======================================
+
+./5_2_when_expression.yml
+==================================================
+---
+- hosts: linux
+  gather_facts: true
+
+  tasks:
+    - name: when expression
+      command: hostname -s
+      when: (ansible_distribution == "CentOS" and ansible_distribution_major_version | int >= 7 )
+            or ansible_hostnameansible_hostname == "yamlServer"
+      register: result
+
+    - name: print the result of when expression
+      debug:
+        var: result
+
+
+# we can use list of agruments in when condition as below
+
+
+    - name: when expression with list of arguments
+      command: hostname -s
+      when:
+        - ansible_distribution == "CentOS"
+        - ansible_distribution_major_version | int >= 7
+      register: result2
+
+
+    - name: print the result of when expression
+      debug:
+        var: result2
+=======================================
+
+./5_3_InstallPatchUsingWhenCondition.yml
+==================================================
+---
+- hosts: linux
+  gather_facts: true
+
+  tasks:
+    - name: when expression with list of arguments
+      command: hostname -s
+      when:
+        - ansible_distribution == "CentOS"
+        - ansible_distribution_major_version | int >= 7
+      register: result2
+
+
+    - name: Install patch when changed 
+      yum:
+        name: patch
+        state: present
+      when: result2.changed 
+#      when: result2 is changed           
+=======================================
+
+./6_1_loop_withItems.yml
+==================================================
+# with_items loop takes a list as argument 
+# in this example we are creating the user using  with_items loop
+
+---
+- hosts: yamlnodes
+  become: true
+  
+  tasks:
+    - name: creating user using with_items
+      user:
+        name: "{{ item }}"
+      with_items: [ 'sumantakumar' , 'smita' , 'akhilesh' ]  # list argument in python form
+      tags: create_user
+
+    - name: delete user using with_items
+      user: 
+        name: "{{ item }}"        
+        state: absent
+        remove: yes
+      with_items:                # list argument in yaml form
+        - sumantakumar
+        - smita
+        - akhilesh
+      tags:  delete_user
+=======================================
+
+./6_2_loop_withDict.yml
+==================================================
+# with_dict loop takes a list of dictionay as argument 
+# in this example we are creating the user using  with_dict loop
+
+---
+- hosts: yamlnodes
+  become: true
+  
+  tasks:
+    - name: creating user using with_dict
+      user:
+        name: "{{ item.key }}"
+        comment: "{{ item.value.comments }}"
+      with_dict: 
+        sumantakumar:   # this is a dictionary 
+          comments: this is a normal user   # this is in key value pair
+        smita:
+          comments: this is a normal user
+        akhilesh:
+          comments: this is a normal user
+      tags: create_user
+
+    - name: delete user using with_items
+      user: 
+        name: "{{ item }}"        
+        state: absent
+        remove: yes
+      with_items:                # list argument in yaml form
+        - sumantakumar
+        - smita
+        - akhilesh
+      tags:  delete_user
+=======================================
+
+./6_3_loop_withSubelements.yml
+==================================================
+# with_subelements loop is usefull when the you have the context which can pass as outer loop first and
+# then you can pass the inner loop 
+
+# Adventage in with_subelements is, we can expand the subelements
+
+# in this example we are creating the user using  with_subelements loop
+
+---
+- hosts: yamlnodes
+  become: true
+  
+  tasks:
+    - name: creating user using with_subelements
+      user:
+        name: "{{ item.1 }}"
+        comment: "{{ item.1 | title }} {{ item.0.comments }}"
+      with_subelements: 
+        - family:                                      # this is a list of dictionary 
+            comments: this is a normal user              # this is in key value pair
+            username:                                    # this is the subelement dictionary 
+             - sumantakumar
+             - smita
+             - akhilesh
+        - username
+      tags: create_user
+
+    - name: create user using with_subelements by expanding the subelements
+      user:
+        name: "{{ item.1 }}"
+        comment: "{{ item.1 | title }} {{ item.0.comments }}"
+      with_subelements:
+        - 
+          - comments: this is normal user
+            username:
+             - sumantakumar
+             - akhilesh
+          - comments: this is group user
+            username:
+             - smita
+        - username
+      tags: expand_subelement
+
+    - name: delete user using with_items
+      user: 
+        name: "{{ item }}"        
+        state: absent
+        remove: yes
+      with_items:                # list argument in yaml form
+        - sumantakumar
+        - smita
+        - akhilesh
+      tags:  delete_user
+=======================================
+
+./6_4_loop_withNested.yml
+==================================================
+# Incase of with_nested loop for each outer element all the inner element will be executed
+
+# in this example we are creating the user directory using  with_nested loop
+
+---
+- hosts: yamlnodes
+  become: true
+  
+  tasks:
+    - name: create user using with_subelements by expanding the subelements
+      user:
+        name: "{{ item.1 }}"
+        comment: "{{ item.1 | title }} {{ item.0.comments }}"
+      with_subelements:
+        - 
+          - comments: this is normal user
+            username:
+             - sumantakumar
+             - akhilesh
+          - comments: this is group user
+            username:
+             - smita
+        - username
+      tags: expand_subelement
+
+    - name: create the user directory
+      file:
+        dest: "/home/{{ item.0 }}/{{ item.1 }}"
+        owner: "{{ item.0 }}"
+        group: "{{ item.0 }}"
+        state: directory
+      with_nested:
+        - [ sumantakumar , akhilesh , smita ]
+        - [ devops , movie , photo ]
+      tags: create_dir
+    - name: delete user using with_items
+      user: 
+        name: "{{ item }}"        
+        state: absent
+        remove: yes
+      with_items:                # list argument in yaml form
+        - sumantakumar
+        - smita
+        - akhilesh
+      tags:  delete_user
+=======================================
+
+./6_5_loop_withTogether.yml
+==================================================
+# Incase of with_together loop for each outer element the corresponding inner element will be executed
+
+# in this example we are creating the user directory using  with_nested loop
+
+---
+- hosts: yamlnodes
+  become: true
+  
+  tasks:
+    - name: create user using with_subelements by expanding the subelements
+      user:
+        name: "{{ item.1 }}"
+        comment: "{{ item.1 | title }} {{ item.0.comments }}"
+      with_subelements:
+        - 
+          - comments: this is normal user
+            username:
+             - sumantakumar
+             - akhilesh
+          - comments: this is group user
+            username:
+             - smita
+        - username
+      tags: expand_subelement
+
+    - name: create the user directory  using with_together 
+      file:
+        dest: "/home/{{ item.0 }}/{{ item.1 }}"
+        owner: "{{ item.0 }}"
+        group: "{{ item.0 }}"
+        state: directory
+      with_together:
+        - [ sumantakumar , akhilesh , smita ]
+        - [ devops , movie , photo ]
+      tags: create_dir
+
+    - name: delete user using with_items
+      user: 
+        name: "{{ item }}"        
+        state: absent
+        remove: yes
+      with_items:                # list argument in yaml form
+        - sumantakumar
+        - smita
+        - akhilesh
+      tags:  delete_user
+=======================================
+
+./6_6_loop_withFile.yml
+==================================================
+# the with_file loop copy the file content to other file 
+
+# in this example we copy the rsa pubic key content to authorized_key of an user's 
+
+---
+- hosts: yamlnodes
+  become: true
+
+  tasks:
+    - name: create an user
+      user:
+        name: "{{ item.key }}"
+        comment: "{{ item.value.comments }}"
+      with_dict:
+        smita:
+          comments: this is a normal user
+
+    - name: create authorized key using with_file
+      authorized_key:
+        user: smita
+        key: "{{ item }}"
+      with_file:
+        - /home/ujam/.ssh/id_rsa.pub
+
+# once the script executed successfully we can validate it by " ssh smita@192.168.33.97 "
+=======================================
+
+./6_7_loop_withSequence.yml
+==================================================
+# with_sequence loop generate a sequence of numbers form the given starting and ending number
+
+# in this example we are creating a sequence of directory using with_sequence loop
+
+---
+- hosts: yamlnodes
+  become: true
+
+  tasks:
+    - name: create an user
+      user:
+        name: "{{ item.key }}"
+        comment: "{{ item.value.comments }}"
+      with_dict:
+        smita:
+          comments: this is a normal user
+
+    - name: create a sequence of directory using with_sequence loop
+      file:
+        dest: "/home/smita/sequence_{{ item }}"
+        state: directory
+      with_sequence: start=0  end=30 stride=10  # stride indicate the interval
+
+#                    we can use any of this ( full path in dest  or mention format )
+#                    In format %d -- decimal , %x - hexa decimal
+
+    - name: create a sequence of directory using with_sequence loop
+      file:
+        dest: "{{ item }}"
+        state: directory
+      with_sequence: start=0 end=30 stride=15 format=/home/smita/dir_%d     
+
+# use of count option in  with_squence 
+ 
+    - name: create a sequence of directory using with_sequence loop having count option
+      file:
+        dest: "{{ item }}"
+        state: directory
+      with_sequence: count=3 format=/home/smita/countDir_%x
+=======================================
+
+./6_8_loop_withRandomChoice.yml
+==================================================
+# with_random_choice loop taked as list of arguments and pick a random element from the list
+
+# in this example we are creating a sequence of directory using with_random_choice loop
+
+---
+- hosts: yamlnodes
+  become: true
+
+  tasks:
+    - name: create an user
+      user:
+        name: "{{ item.key }}"
+        comment: "{{ item.value.comments }}"
+      with_dict:
+        smita:
+          comments: this is a normal user
+
+    - name: create a sequence of directory using with_random_choice loop
+      file:
+        dest: "/home/smita/{{ item }}"
+        state: directory
+      with_random_choice:
+        - movies
+        - photos
+        - games
+=======================================
+
+./6_9_loop_untilRetries.yml
+==================================================
+# loop using until_retries
+
+---
+- hosts: control
+  
+  tasks:
+    - name: ran the script using until loop
+      script: 6_9_random.sh
+      register: output
+      retries: 10
+      until: output.stdout.find("7") != -1
+=======================================
+
+./6_9_random.sh
+==================================================
+#!/bin/bash
+echo $((1 + RANDOM % 10))
+=======================================
+
+./7_1_parallel_N_asyncronous.yml
+==================================================
+# In ansible tasks executed in linear form means each one task execute for  all the hosts specified in
+# the program before going to other task
+
+---
+- hosts: linux
+  
+  tasks:
+    - name: task 1 
+      command:  /bin/sleep 10
+      when: ansible_hostname == 'jenkinMaster'
+      async: 15                 # time out for the task 
+      poll: 1                   # if poll value is positive, the playbook will stick to the patricular
+                                # task until it either completes, fails or times out.
+                                # when the poll value is positive the task will run in linear mode
+
+    - name: task 2
+      command: /bin/sleep 15
+      when: ansible_hostname == 'jenkinslave1'
+      async: 20
+      poll: 1
+
+    - name: task 3
+      command: /bin/sleep 10
+      when: ansible_hostname == 'jenkinslave2'
+      async: 15
+      poll: 1
+=======================================
+
+./7_2_parallel_N_asyncronous.yml
+==================================================
+# In ansible tasks executed in linear form means each one task execute for  all the hosts specified in
+# the program before going to other task
+
+---
+- hosts: linux
+  
+  tasks:
+    - name: task 1 
+      command:  /bin/sleep 10
+      when: ansible_hostname == 'jenkinMaster'
+      async: 15                 # time out for the task 
+      poll: 0                   # if poll value is Zero Ansible will start the task and immediately 
+                                # move on to the next one without waiting for a result.
+                                # when poll value is zero we can not confirm task is completed or not
+                                # we can only check the background process  ps -ef |grep -i ansible
+    - name: task 2
+      command: /bin/sleep 15
+      when: ansible_hostname == 'jenkinslave1'
+      async: 20
+      poll: 0
+
+    - name: task 3
+      command: /bin/sleep 10
+      when: ansible_hostname == 'jenkinslave2'
+      async: 15
+      poll: 0
+=======================================
+
+./7_3_parallel_N_asyncronous_Register_output.yml
+==================================================
+# In ansible tasks executed in linear form means each one task execute for  all the hosts specified in
+# the program before going to other task
+
+---
+- hosts: linux
+  
+  tasks:
+    - name: task 1 
+      command:  /bin/sleep 10
+      when: ansible_hostname == 'jenkinMaster'
+      async: 15                 # time out for the task 
+      poll: 0                   # if poll value is Zero Ansible will start the task and immediately 
+      register: output1         # move on to the next one without waiting for a result.
+                                # when poll value is zero we can not confirm task is completed or not
+                                # we can only check the background process  ps -ef |grep -i ansible
+    - name: task 2
+      command: /bin/sleep 15
+      when: ansible_hostname == 'jenkinslave1'
+      async: 20
+      poll: 0
+      register: output2
+
+    - name: task 3
+      command: /bin/sleep 10
+      when: ansible_hostname == 'jenkinslave2'
+      async: 15
+      poll: 0
+      register: output3
+
+    - name: show the register content for task1
+      debug:
+        var: output1      # the output will show the jobid and the result file, but will not show success or failure 
+
+    - name: show the register content for the task1 using jinja2 
+      debug:
+        msg: "{{ output1 }}"
+
+# to know the status / more  information about the task/job we can use the ansible_jobid of asynchronous task 
+
+=======================================
+
+./7_4_parallel_N_asyncronous_getJobid.yml
+==================================================
+# In ansible tasks executed in linear form means each one task execute for  all the hosts specified in
+# the program before going to other task
+
+---
+- hosts: linux
+
+  vars:
+    thejobIds: []  
+
+  tasks:
+    - name: task 1 
+      command:  /bin/sleep 10
+      when: ansible_hostname == 'jenkinMaster'
+      async: 10                 # time out for the task 
+      poll: 0                   # if poll value is Zero Ansible will start the task and immediately 
+      register: output1         # move on to the next one without waiting for a result.
+                                # when poll value is zero we can not confirm task is completed or not
+                                # we can only check the background process  ps -ef |grep -i ansible
+    - name: task 2
+      command: /bin/sleep 35
+      when: ansible_hostname == 'jenkinslave1'
+      async: 35
+      poll: 0
+      register: output2
+
+    - name: task 3
+      command: /bin/sleep 10
+      when: ansible_hostname == 'jenkinslave2'
+      async: 10
+      poll: 0
+      register: output3
+
+#    - name: show the register content for task1
+#      debug:
+#        var: output1      # the output will show the jobid and the result file, but will not show success or failure 
+
+#    - name: show the register content for the task1 using jinja2 
+#      debug:
+#        msg: "{{ output1 }}"
+
+# to know the status / more  information about the task/job we can use the ansible_jobid of asynchronous task 
+
+    - name: capture the job ids 
+      set_fact:
+        jobids: >
+               {% if item.ansible_job_id is defined -%}
+                  {{ thejobIds + [item.ansible_job_id] }}
+               {% else -%}
+                  {{ thejobIds }}
+               {% endif %}
+      with_items: "{{ [ output1 , output2 , output3 ] }}"
+ 
+    - name: show the job ids 
+      debug:
+        var: thejobIds
+
+=======================================
+
+./7_5_parallel_N_asyncronous_wait2jobComplete.yml
+==================================================
+# In ansible tasks executed in linear form means each one task execute for  all the hosts specified in
+# the program before going to other task
+
+---
+- hosts: linux
+  
+  become: true
+
+  vars:
+    thejobIds: []  
+
+  tasks:
+    - name: task 1 
+      command:  /bin/sleep 10
+      when: ansible_hostname == 'jenkinMaster'
+      async: 10                 # time out for the task 
+      poll: 0                   # if poll value is Zero Ansible will start the task and immediately 
+      register: output1         # move on to the next one without waiting for a result.
+                                # when poll value is zero we can not confirm task is completed or not
+                                # we can only check the background process  ps -ef |grep -i ansible
+    - name: task 2
+      command: /bin/sleep 35
+      when: ansible_hostname == 'jenkinslave1'
+      async: 15
+      poll: 0
+      register: output2
+
+    - name: task 3
+      command: /bin/sleep 10
+      when: ansible_hostname == 'jenkinslave2'
+      async: 10
+      poll: 0
+      register: output3
+
+#    - name: show the register content for task1
+#      debug:
+#        var: output1      # the output will show the jobid and the result file, but will not show success or failure 
+
+#    - name: show the register content for the task1 using jinja2 
+#      debug:
+#        msg: "{{ output1 }}"
+
+# to know the status / more  information about the task/job we can use the ansible_jobid of asynchronous task 
+
+    - name: capture the job ids 
+      set_fact:
+        jobids: >
+               {% if item is changed -%}
+                  {% if item.ansible_job_id is defined -%}
+                     {{ thejobIds + [item.ansible_job_id] }}
+                  {% else -%}
+                     {{ thejobIds }}
+                  {% endif %}
+               {% endif %}
+      with_items: "{{ [ output1 , output2 , output3 ] }}"
+ 
+    - name: show the job ids 
+      debug:
+        var: thejobIds
+
+    - name: 'wait for the job IDs to complete '
+      async_status:
+        jid: "{{ item }}"
+      with_items: "{{ thejobIds }}"
+      register: jobResult
+      until: jobResult.finished
+      retries: 35
+=======================================
+
+./7_6_parallel_N_asyncronous_fork_serial.yml
+==================================================
+# In ansible tasks executed in linear form means each one task execute for  all the hosts specified in
+# the program before going to other task
+
+# we can make the liner process faster by using the  forks = N ( N is a number ) in anisble.cfg file
+# EX -- forks = 3 means at a time 3 hosts will execute in linearly 
+
+# if we use serial module in the playbook then we will able to execut that many no of hosts linearly
+# serial module can take a list in form of numbers or percentile
+
+---
+- hosts: all
+  gather_facts: true
+
+#  serial: 2
+  serial: 
+    - 1
+    - 1
+    - 2
+
+  tasks:
+    - name: task 1 
+      command:  /bin/sleep 10
+
+    - name: task 2
+      command: /bin/sleep 15
+
+    - name: task 3
+      command: /bin/sleep 10
+=======================================
+
+./7_7_parallel_N_asyncronous_strategy.yml
+==================================================
+
+# due to free strategy, if a host is slow or stuck on a specific task won't hold up the rest of the hosts and tasks
+---
+- hosts: all
+  gather_facts: true
+  
+  strategy: free
+  
+  tasks:
+    - name: task 1
+      command:  /bin/sleep 10
+
+    - name: task 2
+      command: /bin/sleep 15
+
+    - name: task 3
+      command: /bin/sleep 10
+=======================================
+
+./8_1_delegate_task.yml
+==================================================
+# To perform a task on one host with reference to other hosts, use the 'delegate_to' keyword on a task.
+
+# Benefit
+# By performing task on other node we can place nodes in a load balanced pool.
+# It is also very useful for controlling outage windows. 
+# Use of 'serial' keyword with 'delegate_to' is also a good idea  to control the number of hosts executing at one time.
+
+---
+- hosts: yamlnodes
+  
+  tasks:
+    - name: get hostname and ip address and add it to DNS
+      command: "hostname -i dynamic_{{ ansible_hostname }}:{{ ansible_default_ipv4.address }}"
+      delegate_to: 192.168.33.95  # as DNS is not configured here IP address is mentioned
+
+    - name: reload the dns mask
+      service:
+        name: 192.168.33.95
+        state: reloaded
+      delegate_to: 192.168.33.95
+      run_once: true   # as name says it will run once 
+
+# please check dnspython module is installed or not  if not execute 'pip install dnspython' 
+
+    - name: check the DNS entries for all the hosts
+      debug:
+        msg: " The IPV4  address for dynamic_{{ item }} is  {{  lookup('dig' , 'dynamic_{{ item }}.') }}"
+      with_items:  "{{ play_hosts }}"  # play_hosts is a magic variable to catch all the hosts in the play 
+
+    - name: remove dynamic dns rule
+      command: "hostname -r dynamic_{{ ansible_hostname }}"
+      delegate_to: 192.168.33.95
+
+    - name: reload the dns mask
+      service:
+        name:  192.168.33.95
+        state: reloaded
+      delegate_to: 192.168.33.95
+      run_once: true
+=======================================
+
+./9_1_blocks.yml
+==================================================
+# blocks allow for logical grouping of tasks 
+
+# it is helpful for handle the error
+
+---
+- hosts: 192.168.33.97
+
+  tasks:
+    - name: create a directory and copy the files into that directory
+      block:
+        - name: create the directory
+          file:
+            path: /home/ujam/workInsideTheDir/allYamlPrograms
+            state: directory 
+            owner: ujam
+            group: ujam
+            recurse: true
+
+        - name: copy the files form local to remote  ( transfer file from one server to other server )
+          synchronize: src=/home/ujam/ansibleDir/playbooks/  dest=/home/ujam/workInsideTheDir/allYamlPrograms/
+          delegate_to: 192.168.33.60              # localhost
+
+###################Copy file Remote-To-Remote###############################
+#- hosts: serverB
+#  tasks:    
+#   - name: Copy Remote-To-Remote (from serverA to serverB)
+#     synchronize: src=/copy/from_serverA dest=/copy/to_serverB
+#     delegate_to: serverA
+#######################################################################
+=======================================
+
+./deletefactdirectory
+==================================================
+---
+- hosts: linux
+  gather_facts: false
+  become: true
+  tasks:
+    - name: delete directory
+      file:
+        path: /etc/ansible/facts.d
+        state: absent
+=======================================
+
+./getcustomfacts1.fact
+==================================================
+#!/bin/bash
+echo {\""current_date\"" : \""`date`\""}
+=======================================
+
+./getcustomfacts2.fact
+==================================================
+#!/bin/bash
+echo [current_date]
+echo current_date=`date`
+=======================================
+
+./tomcat/inventory/group_vars/yamlnodes.yml
+==================================================
+##############################
+# Common configuration
+# Bydefault ansible-playbook command look group_vars/ and host_vars/ directory in the current working directory
+# But other Ansible commands like ansible, ansible-console, etc look group_vars/ and host_vars/ directory 
+# inside the inventory directory.  
+##############################
+---
+
+tomcat:
+  software:
+    source: https://archive.apache.org/dist/tomcat/tomcat-9/v9.0.11/bin/apache-tomcat-9.0.11.tar.gz
+    certs:
+      validate: false
+=======================================
+
+./tomcat/inventory/hosts
+==================================================
+---
+#   - Top level entries are assumed to be groups, start with 'all' to have a full hierarchy
+#   - Hosts must be specified under a group's   hosts:
+#   - Anything defined under a host is assumed to be a var
+#   - A hostname/IP can be a member of multiple groups
+
+all:
+  children:
+    control:
+      hosts:
+        192.168.33.60:
+    jenkinsmaster:
+      hosts:
+        192.168.33.95:
+    yamlnodes:
+      hosts:
+        192.168.33.97:
+          ansible_become: true
+          ansible_become_pass: suman345
+        192.168.33.99:
+          ansible_become: true
+          ansible_become_pass: suman345
+    linux:
+      children:
+        jenkinsmaster:
+        yamlnodes:
+=======================================
+
+./tomcat/roles/tasks/installTomcat.yml
+==================================================
+---
+
+  - name: Tomcat URL info
+    debug:         # value of tomcat.software.source comes from group_var/yamlnodes.yml
+      msg:  "Download tomcat from {{ tomcat.software.source }}"
+
+  - name: Download tomcat using get_url module
+    get_url: 
+      url: "{{ tomcat.software.source }}"
+      dest: /tmp/
+
+################### we can use wget in command module ################
+#    - name: Download tomcat                                         #
+#      command: " wget {{ tomcat.software.source }}"                 #
+#      args:                                                         #
+#        chdir: /tmp/                                                #
+######################################################################
+
+  - name: check tomcat directory if not exist create the directory
+    block:
+      - name: check tomcat directory
+        stat:
+          path: /opt/apache-tomcat
+        register: dirStat
+     #- debug: var=dirStat 
+
+      - name: create tomcat directory if not exist
+        file:
+          path: /opt/apache-tomcat
+          recurse: true
+          state: directory
+        when: dirStat.stat.exists == false
+
+  - name: Extract tomcat from archive if tomcat is not extracted
+    block:
+      - name: check tomcat is extracted or not
+        shell: " ls -1 | wc  -l"
+        args:
+          chdir: /opt/apache-tomcat/
+        register: counts
+      - debug: var=counts
+
+      - name: extract tomcat 
+        unarchive:
+          src: /tmp/apache-tomcat-9.0.11.tar.gz
+          remote_src: yes    #   yes    indicate the archived file is already on the remote system 
+          dest: /opt/apache-tomcat
+        when: counts.stdout | int == 0
+
+  - name: Ansible template with_items
+    template:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      mode: 0777
+      backup: yes
+      owner: root
+      group: root
+    with_items:
+      - {src: '/home/ujam/ansibleDir/playbooks/tomcat/roles/templates/context.xml' , dest: '/opt/apache-tomcat/apache-tomcat-9.0.11/webapps/manager/META-INF/'}
+      - {src: '/home/ujam/ansibleDir/playbooks/tomcat/roles/templates/tomcat-users.xml' , dest: '/opt/apache-tomcat/apache-tomcat-9.0.11/conf/'}
+      - {src: '/home/ujam/ansibleDir/playbooks/tomcat/roles/templates/host-manager.xml' , dest: '/opt/apache-tomcat/apache-tomcat-9.0.11/conf/Catalina/localhost/'}
+      - {src: '/home/ujam/ansibleDir/playbooks/tomcat/roles/templates/manager.xml' , dest: '/opt/apache-tomcat/apache-tomcat-9.0.11/conf/Catalina/localhost/'}
+ 
+  - name: enable firewall and iptable for http   
+    block:
+      - name: enable  iptable for http
+        vars:
+          enable_http: yes
+        iptables:
+          chain: INPUT
+          protocol: udp
+          destination_port: "8080"
+          jump: ACCEPT
+        when: enable_http
+
+      - name: Enable port in firewall
+        firewalld:
+         # zone: dmz
+         # service: http
+          port: 8080/tcp
+          permanent: yes
+          state: enabled     
+=======================================
+
+./tomcat/roles/tasks/main.yml
+==================================================
+---
+
+  - name: check tomcat is present or not
+    stat:
+      path: /opt/apache-tomcat/apache-tomcat-9.0.11/bin/
+    register: dirStat
+  - debug: var=dirStat
+
+  - name: install tomcat if not present
+    include_tasks: installTomcat.yml
+    when: dirStat.stat.exists == false
+
+  - name: Change mode for startup and shutdown script
+    file:
+      path: "{{ item }}"
+      mode: 0777
+      owner: root
+      group: root
+    with_items:
+      - '/opt/apache-tomcat/apache-tomcat-9.0.11/bin/shutdown.sh'
+      - '/opt/apache-tomcat/apache-tomcat-9.0.11/bin/startup.sh'
+      - '/opt/apache-tomcat/apache-tomcat-9.0.11/bin/catalina.sh'
+    when: dirStat.stat.exists == true
+
+  - include_tasks: stopStartTomcat.yml
+
+=======================================
+
+./tomcat/roles/tasks/stopStartTomcat.yml
+==================================================
+---
+
+  - name: stop tomcat
+    command: nohup /opt/apache-tomcat/apache-tomcat-9.0.11/bin/shutdown.sh
+    tags: shutdown_tomcat
+
+  - name: start tomcat
+    command: nohup /opt/apache-tomcat/apache-tomcat-9.0.11/bin/startup.sh
+    tags: startup_tomcat
+=======================================
+
+./tomcat/roles/templates/context.xml
+==================================================
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<Context antiResourceLocking="false" privileged="true" >
+
+<!--
+  <Valve className="org.apache.catalina.valves.RemoteAddrValve"
+         allow="127\.\d+\.\d+\.\d+|::1|0:0:0:0:0:0:0:1" />
+-->
+
+  <Manager sessionAttributeValueClassNameFilter="java\.lang\.(?:Boolean|Integer|Long|Number|String)|org\.apache\.catalina\.filters\.CsrfPreventionFilter\$LruCache(?:\$1)?|java\.util\.(?:Linked)?HashMap"/>
+
+</Context>
+=======================================
+
+./tomcat/roles/templates/context.xml.old
+==================================================
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<!-- The contents of this file will be loaded for each web application -->
+<Context>
+
+    <!-- Default set of monitored resources. If one of these changes, the    -->
+    <!-- web application will be reloaded.                                   -->
+    <WatchedResource>WEB-INF/web.xml</WatchedResource>
+    <WatchedResource>WEB-INF/tomcat-web.xml</WatchedResource>
+    <WatchedResource>${catalina.base}/conf/web.xml</WatchedResource>
+
+    <!-- Uncomment this to disable session persistence across Tomcat restarts -->
+    <!--
+    <Manager pathname="" />
+    -->
+</Context>
+=======================================
+
+./tomcat/roles/templates/host-manager.xml
+==================================================
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Context privileged="true" antiResourceLocking="false" docBase="${catalina.home}/webapps/host-manager">
+    <Valve className="org.apache.catalina.valves.RemoteAddrValve" allow="^.*$" />
+</Context>
+=======================================
+
+./tomcat/roles/templates/manager.xml
+==================================================
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Context privileged="true" antiResourceLocking="false" docBase="${catalina.home}/webapps/manager">
+    <Valve className="org.apache.catalina.valves.RemoteAddrValve" allow="^.*$" />
+</Context>
+=======================================
+
+./tomcat/roles/templates/tomcat-users.xml
+==================================================
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<tomcat-users xmlns="http://tomcat.apache.org/xml"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://tomcat.apache.org/xml tomcat-users.xsd"
+              version="1.0">
+<!--
+  NOTE:  By default, no user is included in the "manager-gui" role required
+  to operate the "/manager/html" web application.  If you wish to use this app,
+  you must define such a user - the username and password are arbitrary. It is
+  strongly recommended that you do NOT use one of the users in the commented out
+  section below since they are intended for use with the examples web
+  application.
+-->
+<!--
+  NOTE:  The sample user and role entries below are intended for use with the
+  examples web application. They are wrapped in a comment and thus are ignored
+  when reading this file. If you wish to configure these users for use with the
+  examples web application, do not forget to remove the <!.. ..> that surrounds
+  them. You will also need to set the passwords to something appropriate.
+-->
+<!--
+  <role rolename="tomcat"/>
+  <role rolename="role1"/>
+  <user username="tomcat" password="<must-be-changed>" roles="tomcat"/>
+  <user username="both" password="<must-be-changed>" roles="tomcat,role1"/>
+  <user username="role1" password="<must-be-changed>" roles="role1"/>
+-->
+
+  <role rolename="tomcat"/>
+  <role rolename="admin-gui"/>
+  <role rolename="admin-script"/>
+  <role rolename="manager-gui"/>
+  <role rolename="manager-status"/>
+  <role rolename="manager-script"/>
+  <role rolename="manager-jmx"/>
+  <user username="sksumanta" password="suman345" roles="tomcat,admin-gui,manager-gui,admin-script,manager-script,manager-status,manager-jmx"/>
+
+
+</tomcat-users>
+=======================================
+
+./tomcat/tomcat_setup.yml
+==================================================
+---
+- hosts: 192.168.33.99 
+
+  gather_facts: true
+  remote_user: ujam
+  become: true
+  become_method: sudo
+
+  roles:
+#    the below line 'roles' is a directory present in tomcat directory
+    - roles
+
+
+# To execute use    ansible-playbook -i ./inventory/hosts   tomcat_setup.yml   --skip-tags "shutdown_tomcat" 
+=======================================
+
+./9_2_blocks_N_when.yml
+==================================================
+---
+- hosts: linux
+
+  tasks:
+    - name: First block of modules executed
+      block:
+        - name: example with when condition inside the block
+          debug:
+            msg: this is centOs and ansible_hostname is  {{ ansible_hostname }}
+          when: ansible_distribution == 'CentOS' and ansible_hostname == 'jenkinslave2'
+
+        - name: example using with_items
+          debug:
+            msg: item {{ item }} execute for {{ ansible_hostname }}
+          with_items: ['a','b','c'] 
+
+    - name: Second block of the modules executed
+      block:
+        - name: example using with_items in second block
+          debug:
+            msg: item is  {{ item }}
+          with_items: [1,2,3]
+      when:  ansible_distribution == 'CentOS' and ansible_hostname == 'jenkinslave1'
+=======================================
+
+./9_3_blocks_exception_handling.yml
+==================================================
+# block ------- act as try ( Blocks only deal with failed status of a task)
+# rescue ------ act as catch ( This will revert the failed status of the task for the run and the play will continue as if it had succeeded )
+# always ------ act as fatch ( that will run no matter what the task status is )
+
+---
+- hosts: 192.168.33.99
+
+  tasks:
+    - name: install patch and python-dns
+      block:
+        - name: install patch
+          package:
+            name: patch
+
+        - name: install python-dns
+          package:
+            name: python-dnspython
+
+      rescue:
+        - name: rollback patch
+          package:
+            name: patch
+            state: absent
+
+        - name: rollback python-dnspython
+          package:
+            name: python-dnspython
+            state: absent
+
+      always:
+        - debug:
+            msg: always section runs regardless
+
+ 
+=======================================
+
+./10_1_sending_mail.yml
+==================================================
+---
+- hosts: control
+
+  tasks:
+    - name: send a mail to the gmail account
+      mail:
+        host: smtp.gmail.com
+        port: 587
+        secure: starttls
+        charset: utf-8
+        sender: sumanta.sahoo98@gmail.com
+        username: sumanta.sahoo98@gmail.com
+        password: SaraswatiSahoo
+        to: sumanta sahoo <sumanta.sahoo98@gmail.com>
+        subject: ansible report
+        body: System {{ ansible_hostname }} has been successfully provisioned.
+=======================================
+
+./11_1_customModule.sh
+==================================================
+# The custom module can be writen in any scripting language (like  unix shell scripting or python )  which can return JSON output
+# git clone https://github.com/ansible/ansible.git
+# cd /home/ujam/getansibleCostom/ansible/hacking
+#  ./test-module -m /home/ujam/ansibleDir/playbooks/11_1_customModule.sh 
+
+# Url for custom module " https://docs.ansible.com/ansible/latest/dev_guide/developing_modules_general.html " in python 
+
+# 
+#!/bin/bash
+
+ping -c 1 192.168.33.95 > /dev/null 2>/dev/null
+
+if [ $? == 0 ]
+   then
+      echo "{\"changed\": true , \"rc\": 0 }"
+else
+   echo "{\"failed\": true , \"msg\": \"failed to ping\", \"rc\":2}"
+fi
+=======================================
+
+./12_1_include_import.yml
+==================================================
+# In Ansible we can reuse the content with include and import and roles 
+# All import* statements are pre-processed at the time playbooks are parsed.
+# All include* statements are processed as they encountered during the execution of the playbook.
+# So import (import_playbook, import_tasks, etc.) is static. 
+#    include (include_tasks, include_role, etc.) is dynamic.
+# "include: {{ codename }}.yml " 
+
+
+# In the below example include a playbook 
+
+---
+- include: 9_1_blocks.yml
+
+=======================================
+
+./12_2_include_playbook.yml
+==================================================
+---
+
+- include: 9_1_blocks.yml
+
+- hosts: 192.168.33.97
+
+  tasks:
+    - name: count no of file in the directory
+      shell: |
+             ls -1 | wc -l
+      args:
+        chdir: /home/ujam/workInsideTheDir/allYamlPrograms
+      register: theCount
+    - debug:         # var=theCount
+        msg: "cout is {{ theCount.stdout }}"
+=======================================
+
+./12_0_taskFile.yml
+==================================================
+---
+- name: check the directory is exist or not
+  stat:  
+    path: /home/ujam/workInsideTheDir/allYamlPrograms
+  register: dirStat
+
+- name: result  
+  debug:
+    msg: >
+         {% if dirStat.stat.exists == true -%}
+            directory is exsit 
+         {% else -%}
+            directory is not exist
+         {% endif %}
+=======================================
+
+./12_0_yaml2ImportOrInclude.yml
+==================================================
+---
+- hosts:  192.168.33.97
+
+  tasks:
+    - name: check the directory is exist or not
+      stat:  
+        path: /home/ujam/workInsideTheDir/allYamlPrograms
+      register: dirStat
+
+    - name: result  
+      debug:
+        msg: >
+            {% if dirStat.stat.exists == true -%}
+               directory is exsit 
+            {% else -%}
+               directory is not exist
+            {% endif %}
+=======================================
+
+./12_3_include_playbook_in_tasks.yml
+==================================================
+---
+
+- hosts: 192.168.33.97
+
+  tasks:
+    - name: Include playbook in tasks
+      debug:
+        msg: include task file 12_0_taskFile.yml in the playbook tasks
+
+#    include_tasks is dynamic
+    - include_tasks: 12_0_taskFile.yml   # include a task file inside the playbook
+
+#    include is static
+#    - include: 12_0_taskFile.yml
+
+    - name: count no of file in the directory
+      shell: |
+             ls -1 | wc -l
+      args:
+        chdir: /home/ujam/workInsideTheDir/allYamlPrograms
+      register: theCount
+    - debug:         # var=theCount
+        msg: "cout is {{ theCount.stdout }}"
+=======================================
+
+./12_4_include_import.yml
+==================================================
+# inlude is static 
+# include_tasks is dynamic
+# import_tasks is static
+
+=======================================
+
+./13_0_roles.yml
+==================================================
+# Roles  is a logical structure means Roles is simply a directory structure. 
+# Using role it is easy to share and manage playbooks , templates , variables etc
+# Role can be developed independently in parallel by different entities and work well with version control 
+# Role can have dependencies on other roles allowing automatic inclusion.
+
+
+# In Roles directory structure the top level dirctory is the name of the role
+
+# Example of a 'Roles' directory structure
+
+#jms_test       # this is the name of the role
+#|----defaults  # this is the directory which holds the default variables
+#|      |____ main.yml
+#|----files     # If you want to use any script in the module then you can keep it in 'files' dirctory
+#|      |____ abc.sh
+#|----handlers  # It holds the handler content
+#|      |____ main.yml
+#|----meta      # this directory holds the setting for the roles and dependncy 
+#|      |____ main.yml
+#|----README.md # If you want to publish (to github/ version control) the role then we need this file 
+#|----tasks     # We include all the tasks 
+#|      |____ main.yml
+#|----templates # All jinja2 templates will be in this directory
+#|----tests     # This folder is useful for the unit test
+#|      |____ inventory
+#|      |____ test.yml
+#|----vars      # This folder holdes the role var
+#      |____ main.yml
+
+# To create the above directory structure you can use " ansible-galaxy init  directory_name "
+
+# As Role is a logical dirctory structure so it is not mandetory to follow same directory structure as above
+# As per our requirement we can create the dirctories and use it in the program.
+
+# For example as below
+
+# tomcat
+#  |___inventory
+#  |     |____group_vars
+#  |     |      |___yamlnodes.yml
+#  |     |____hosts
+#  |___roles  # inside roles directory we can create a directory 'theTomcat' to keep its tasks and template
+#  |     |____tasks
+#  |     |      |___installTomcat.yml
+#  |     |      |___main.yml
+#  |     |      |___stopStartTomcat.yml
+#  |     |____templates
+#  |            |___context.xml
+#  |            |___context.xml.old
+#  |            |___host-manager.xml
+#  |            |___manager.xml
+#  |            |___tomcat-users.xml
+#  |___tomcat_setup.yml
+#
+=======================================
+

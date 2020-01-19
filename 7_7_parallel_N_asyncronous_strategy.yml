@@ -1,0 +1,17 @@
+
+# due to free strategy, if a host is slow or stuck on a specific task won't hold up the rest of the hosts and tasks
+---
+- hosts: all
+  gather_facts: true
+  
+  strategy: free
+  
+  tasks:
+    - name: task 1
+      command:  /bin/sleep 10
+
+    - name: task 2
+      command: /bin/sleep 15
+
+    - name: task 3
+      command: /bin/sleep 10

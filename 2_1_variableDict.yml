@@ -1,0 +1,22 @@
+---
+- hosts: control
+  gather_facts: false
+
+  vars:
+    thedict:   # declare the dictionary in yaml format
+      dictkey1: this is the value of dictionary first key
+      dictkey2: this is the value of dictionary second key
+
+  tasks:
+    - name: get the value of the dictionary
+      debug:
+        msg: "{{ thedict }}"
+
+    - name: get the value of the dictionary key using yaml "thedict.dictkey"
+      debug:
+        msg: "{{ thedict.dictkey1 }}"
+
+    - name: get the value of the dictionary key using python form "thedict['dictkey']"
+      debug:
+        msg: "{{ thedict['dictkey2'] }}"
+

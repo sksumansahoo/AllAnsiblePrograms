@@ -1,0 +1,13 @@
+
+---
+- hosts: jenkinsmaster
+  gather_facts: true
+
+  tasks:
+    - name: collect ansible_port using yaml format
+      debug:
+        msg: "{{ hostvars[ansible_hostname].ansible_port | default('22') }}"
+   
+    - name: collect ansible_port using python format
+      debug:
+        msg: "{{ hostvars[ansible_hostname]['ansible_port'] | default('22') }}"

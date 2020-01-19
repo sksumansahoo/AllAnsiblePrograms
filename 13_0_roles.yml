@@ -1,0 +1,54 @@
+# Roles  is a logical structure means Roles is simply a directory structure. 
+# Using role it is easy to share and manage playbooks , templates , variables etc
+# Role can be developed independently in parallel by different entities and work well with version control 
+# Role can have dependencies on other roles allowing automatic inclusion.
+
+
+# In Roles directory structure the top level dirctory is the name of the role
+
+# Example of a 'Roles' directory structure
+
+#jms_test       # this is the name of the role
+#|----defaults  # this is the directory which holds the default variables
+#|      |____ main.yml
+#|----files     # If you want to use any script in the module then you can keep it in 'files' dirctory
+#|      |____ abc.sh
+#|----handlers  # It holds the handler content
+#|      |____ main.yml
+#|----meta      # this directory holds the setting for the roles and dependncy 
+#|      |____ main.yml
+#|----README.md # If you want to publish (to github/ version control) the role then we need this file 
+#|----tasks     # We include all the tasks 
+#|      |____ main.yml
+#|----templates # All jinja2 templates will be in this directory
+#|----tests     # This folder is useful for the unit test
+#|      |____ inventory
+#|      |____ test.yml
+#|----vars      # This folder holdes the role var
+#      |____ main.yml
+
+# To create the above directory structure you can use " ansible-galaxy init  directory_name "
+
+# As Role is a logical dirctory structure so it is not mandetory to follow same directory structure as above
+# As per our requirement we can create the dirctories and use it in the program.
+
+# For example as below
+
+# tomcat
+#  |___inventory
+#  |     |____group_vars
+#  |     |      |___yamlnodes.yml
+#  |     |____hosts
+#  |___roles  # inside roles directory we can create a directory 'theTomcat' to keep its tasks and template
+#  |     |____tasks
+#  |     |      |___installTomcat.yml
+#  |     |      |___main.yml
+#  |     |      |___stopStartTomcat.yml
+#  |     |____templates
+#  |            |___context.xml
+#  |            |___context.xml.old
+#  |            |___host-manager.xml
+#  |            |___manager.xml
+#  |            |___tomcat-users.xml
+#  |___tomcat_setup.yml
+#

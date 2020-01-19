@@ -1,0 +1,33 @@
+---
+- hosts: control
+  gather_facts: false
+
+  tasks:
+    - name: Ansible jinja2 filters
+      debug:
+        msg: >
+            --== Ansible jinja2 filters ==--
+
+            --== min [1,2,3,4,5] ==--
+
+            {{ [1,2,3,4,5] | min }}
+
+            --== max [1,2,3,4,5] ==--
+
+            {{ [1,2,3,4,5] | max }}
+
+            --== unique [1,1,2,2,3,3,4,5,4,5] ==--
+
+            {{ [1,1,2,2,3,3,4,5,4,5] | unique }}
+
+            --== difference [1,2,3,4,5] vs [2,3,4,5,6] ==--
+
+            {{ [1,2,3,4,5] | difference([2,3,4,5,6]) }}
+
+            --== random ['sumanta', 'smita' , 'akhilesh'] ==--
+
+            {{ ['sumanta', 'smita' , 'akhilesh'] | random }}
+
+            --== urlsplit hostname ==--
+
+            {{ "https://docs.ansible.com/ansible/latest/user_guide/playbooks_filters.html" | urlsplit('hostname') }}
