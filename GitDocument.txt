@@ -1,0 +1,438 @@
+    
+ 
+What is GIT?
+	It is a distributed version conrtol system. 
+Distributed version control system don't relay on central server all the 
+time to store all the version of the project file. So every developer has 
+a local copy and every body mentain a local repository. They commit their 
+code without any interference when work complete. Using pull and push 
+request the devlopers pull and push the data from local to central repository.
+
+What is the difference between git and github?
+	Git is the version control system to manage source code.
+	Github is the web/host service to git repository. 
+
+what are other version control system?
+	SVN 
+
+How to create user and email id  in git?
+	sudo su -
+	useradd -m -s /bin/bash rama
+	passwd rama
+	usermod rama -aG wheel
+	su rama
+	git config --global user.name "rama"
+	git config --global user.email "sumanta.sahoo98@gmail.com"
+	
+
+How to create a local git repository ?
+
+  cd StudyDevops/
+  pwd
+  git init	# create local repository 
+  ls -la
+
+How to communicate local git repository with GitHub repository?
+	
+	cd Local_N_Remot/
+	ls
+	git init
+			Initialized empty Git repository in E:/Local_N_Remot/.git/
+	mkdir myProject
+	cd myProject/
+	vi projectFile
+	git status
+			On branch master
+			No commits yet
+			Untracked files:
+			(use "git add <file>..." to include in what will be committed)
+					./
+			nothing added to commit but untracked files present (use "git add" to track)
+	cd ..
+	ls  -lrt
+			total 0
+			drwxr-xr-x 1 Sumanta 197121 0 Aug 17 08:31 myProject/
+	git add .
+	git commit -m "added a project"
+			[master (root-commit) 5b4ab14] added a project
+			1 file changed, 1 insertion(+)
+			create mode 100644 myProject/projectFile
+	git log
+			commit 5b4ab142a3049611d07a9b2e8b7686f73b2b731f (HEAD -> master)
+			Author: unknown <sumanta.sahoo98@gmail.com>
+			Date:   Sat Aug 17 08:37:00 2019 +0530
+			
+				added a project
+	git remote -v
+	git remote add origin https://github.com/sksumanta/LocalNRemote.git  # adding remote repo with local repo
+	git push -u origin master
+	
+			Enumerating objects: 4, done.
+			Counting objects: 100% (4/4), done. 
+			Delta compression using up to 4 threads
+			Compressing objects: 100% (2/2), done.
+			Writing objects: 100% (4/4), 322 bytes | 35.00 KiB/s, done.
+			Total 4 (delta 0), reused 0 (delta 0)
+			To https://github.com/sksumanta/LocalNRemote.git
+			* [new branch]      master -> master
+			Branch 'master' set up to track remote branch 'master' from 'origin'.
+	
+How communicate a local folder with GitHub repository?
+  
+  mkrid  AllDevopsTopics
+ 
+  cd AllDevopsTopics/
+
+  git remote add origin https://github.com/sksumanta/studyDevops.git  # create reference to a remote repository for further tracking
+			or
+  git clone https://github.com/sksumanta/studyDevops.git  # clone the remote repository
+  
+  git remote -v    # it will show which activity we can do 
+  git add .
+  git commit -m  "add the file to check git is working"
+
+  cd studyDevops
+		the new prompt is Sumanta@Sumanta-Lenovo-PC MINGW64 /e/AllDevopsTopics/studyDevops (master)
+  
+  git pull --allow-unrelated-histories https://github.com/sksumanta/studyDevops.git
+  git push origin master
+
+
+what is the difference between git remote and git clone?
+	git remote adds, a reference to a remote repository for further tracking.
+		git remote add origin "url-of-repository"
+		
+	git clone is used to copy or clone a different repository.
+		git clone "url-of-repository"
+		
+how to create a git project?
+	it is same as Local and Remote communication.
+
+what is staging in git?
+	When we do  "git add ." the code change go for staging.
+What is Staging area?
+	After "git add ." and before "git commit -m "message" " the code store in a 
+	temporary area that is known as staging area.
+What is snapshot in git?
+	While developing something, we make change in our code. When we use git commit
+to git repository, it save a snapshot of all the files in the repository. 
+So when we check out a particuar commit " git checkout commit_hash " git reconstructs 
+a complete snapshot of the code at the time. 
+The each snapshot detail present in ".git/object" 
+
+		$ git log
+		commit 3936366a2bfd65d58e3a0bbaae08e6440a9f498e (HEAD -> master, origin/master)
+		Author: unknown <sumanta.sahoo98@gmail.com>
+		Date:   Sat Aug 17 08:52:43 2019 +0530
+		
+			added steps   
+		
+		commit 472661942745288eca70fd10231e3c19aabe49f7
+		Author: unknown <sumanta.sahoo98@gmail.com>
+		Date:   Sat Aug 17 08:50:18 2019 +0530
+		
+			added steps
+		
+		commit 5b4ab142a3049611d07a9b2e8b7686f73b2b731f
+		Author: unknown <sumanta.sahoo98@gmail.com>
+		Date:   Sat Aug 17 08:37:00 2019 +0530
+		
+			added a project
+	
+	The each commit has a commit no where the first seven character is known as commit hash.
+
+		$ git checkout 4726619
+		
+		Note: checking out '4726619'.
+		
+		You are in 'detached HEAD' state. You can look around, make experimental
+		changes and commit them, and you can discard any commits you make in this
+		state without impacting any branches by performing another checkout.
+		
+		If you want to create a new branch to retain commits you create, you may
+		do so (now or later) by using -b with the checkout command again. Example:
+		
+		git checkout -b <new-branch-name>
+		
+		HEAD is now at 4726619 added steps
+
+what is git branch?
+	Git branches are effectively a pointer to a snapshot of your changes.
+
+why git branch?
+	When devloper want to add new feature or fix for a bug, it is not recomended to 
+do the activity in the master branch. if the change commmited directly in the master
+branch then the code may become unstable. So devloper need to create new branch to
+encapsulate their changes. Once the work is done they can merge the branch to the 
+ main branch.
+
+Different git branch commands?
+	
+	git branch <branch_name> # Create a new branch in local repo
+			ex -->  git branch studyDevops
+			 
+	git branch --list   # List all of the branches in your repository.
+			ex -->   git branch --list
+			  * (HEAD detached at 5b4ab14)
+			  master
+			  studyDevops
+
+	git branch -d <branch_name> # delete a beanch but -d did not allow to delete 
+												branch if it has unmerged changes.
+												
+	git branch -D <branch_name> # delete a beanch but -D delete branch though 
+												it has unmerged changes.
+	git branch -m <branch_name>	# Rename the current branch_name to new branch_name
+	
+	git branch -m <old_branch_name> <new_branch_name>	# Rename the differnt branch_name to new branch_name
+	
+	git remote add new-remote_branch https://github.com/XXXXXX/XXXXX.git # create remote branch
+			ex --> $ git remote add new-remote_branch https://github.com/sksumanta/LocalNRemote.git
+	
+	git push new-remote_branch local_repo_branch_name  # pushes the local_repo_branch_name to new-remote-branch
+			ex --> $ git push new-remote_branch studyDevops
+			Total 0 (delta 0), reused 0 (delta 0)
+			remote:
+			remote: Create a pull request for 'studyDevops' on GitHub by visiting:
+			remote:      https://github.com/sksumanta/LocalNRemote/pull/new/studyDevops
+			remote:
+			To https://github.com/sksumanta/LocalNRemote.git
+			* [new branch]      studyDevops -> studyDevops
+
+	git branch -a 				# list all remote branch
+			ex --> git branch -a
+			* (HEAD detached at 5b4ab14)
+			master
+			studyDevops
+			remotes/new-remote_branch/studyDevops
+			remotes/origin/master
+
+	git push origin --delete branch_name
+				or						# delete remote branch
+	git push origin :branch_name
+
+how to switch branches?
+	git checkout command lets you navigate between the branches created by git branch.
+	
+	git checkout branch_name
+	
+			 git checkout master
+				Previous HEAD position was 5b4ab14 added a project
+				Switched to branch 'master'
+				Your branch is up to date with 'origin/master'.
+			 git checkout  new-remote_branch/studyDevops
+				Switched to a new branch 'new-remote_branch/studyDevops'
+	
+	The git checkout command with -b argument create a new branch and immediately switch to it.
+	git checkout -b <new-branch>
+	
+What is git head and how it work?
+	Git  head is the pointer to current revision/branch. When we execute "git checkout" command
+git determine which revision of your project you want to work on and automatically moves the 
+HEAD pointer . Then git places all of that revision's files in your working copy folder. 
+	Normaly we can provide "git checkout" command as below 
+	
+	git checkout branch_name
+			or
+	git checkout commit_SHA1_hash_reference    # commit_SHA1_hash_reference is the first 7 char of commit
+
+what is detached HEAD?
+	when a specific commit hash is checked out instead of a branch that is know as detached head.
+In this case head pointer move to the specific commit so when we do any changes that changes not belongs to
+any branch. This means they can easily get lost once you check out a different revision or branch as the
+changes not recorded in the context of a branch. 
+	To avoid this you can do the below
+		git checkout -b temporay-test-branch commit_SHA1_hash_reference
+		
+		ex --> git checkout -b temp-test-branch  56a4e5c08
+		so it will create a temporary branch and cpoy the commit into that branch, then you do your 
+work.once your work is complet you can delete the branch.
+
+	In case of "rebase" git temporary detached HEAD.
+
+How to checkout particular commit/snapshot into a new branch?
+		git checkout -b temporay-test-branch commit_SHA1_hash_reference
+		
+		ex --> git checkout -b temp-test-branch  56a4e5c08
+		so it will create a temporary branch and cpoy the commit into that branch, then you do your 
+work.once your work is complet you can delete the branch.
+
+How you edit / fix the last commit's message  or how amend works?
+		By using the "--amend" flag with "git commit" we can fix or edit last commit message.
+Also we can add another couple of changes while amending the last commit.
+		git add another/changed/file.txt
+		git commit --amend -m "New and correct message"
+How can I undo the last commit?
+		git reset --soft HEAD~1	# when use the soft parameter you can undo the last commit and the 
+and you'll find the changes as uncommitted local modifications in your working copy.
+
+		git reset --hard HEAD~1 # when use the hard parameter you can undo the last commit and 
+delete the presnt commit.
+		git reset --hard commit_hash # when use the hard parameter with commit_hash you can undo the commit 
+till the commit_hash and delete all other commit aftet the commit_hash.
+
+How can redo an undo commit?
+		git revert commit_hash 
+
+How to restoring a Revision in a New Local Branch
+		git checkout -b new-project-state commit_hash 
+
+How can I ignore files that have already been committed to the repo?
+		when you create a new repository, you should also create a ".gitignore" file with all the 
+file name you want to ignore.
+		git reset filename          # or
+		echo filename >> .gitingore # add it to .gitignore to avoid re-adding it
+
+How to Cleaning Ignored Files?
+		git rm -r --cached .
+		git add .
+		git commit -m "Clean up ignored files"
+
+how to save the changes Temporarily or what is git stash?
+		suppose you're in the middle of some changes for a feature and some important bug has reported.
+		In that case you dont want to commit your half finished work but you want to save it in your local 
+		repository. so that once you fix the bug you can start half finished work.
+		In this case we can use "git stash"
+		To get the list of current Stashes we can use "git stash list"
+When to Stash?
+		before checking out a different branch.
+		before pulling remote changes.
+		before merging or rebasing a branch.
+how to restore back to the saved stash?
+		git stash pop - Restore back to the saved state, but it deletes the stash from the temporary storage.
+		git stash apply stash_name - Restore back to the saved state and leaves the stash list for possible later reuse.
+		
+		git stash drop stash_name - it delete the stash
+
+What's the difference between git fetch and git pull?
+		git fetch only downloads new data from a remote repository - but it doesn't 
+	integrate any of this new data into your working files.
+			 git fetch origin
+		git pull downloads new data integrates it into your current working files. 
+	Since "git pull" tries to merge remote changes with your local ones, so it may create "merge conflict".
+	
+How to Merging Changes in git?
+		Everytime it is not possible to integrate the indivisual commit to the master. Instead, you tell Git which 
+	branch you want to integrate and Git will figure out which commits you don't have in your current working branch.
+	Only these commits will be integrated. 
+		git checkout master # moving to the master or current working branch
+			git merge branch_name	# the branch will be merged with the current working branch
+		
+Why merge conflict?
+		if two people changed the same file, or if one person decided to delete the file while the other person decided 
+		to modify the same file, that time Git simply cannot know what is correct. Then git mark the file as conflict. 
+		At the time of integration git will create merge conflict.
+
+What is the difference between merge and rebase?
+
+
+What is "git cherry-pick"?
+	The "git cherry-pick" is use to push particular commits from one branch within a repository to a different branch. 
+		git cherry-pick <commit-hash>
+
+How to delete github repository?
+	On GitHub, navigate to the main page of the repository.
+Under your repository name, click  Settings.
+Under Danger Zone, click Delete this repository.
+
+
+
+
+what is git branch? and use branch?
+	Git branch is essentially an independent line of development,
+by which one can work without affecting other team memebers.
+
+how to create a branch in local?
+
+	git branch  branch_name
+	
+how to list all branch localy?
+
+	git branch --list 
+		
+how to list all branch in remote and local?
+
+	git branch -av
+		
+how to switch one branch to other?
+	git checkout new_branch_name
+		
+how to push code into new local branch to new remote server?
+
+	git push origin new_branch_name
+		
+how to merge new branch to master branch?
+
+	git checkout master   ------ checkout to local
+	git merge new_branch_name  --- merged in locally
+	git add *
+	git commit -m "merged" -a
+	
+	git push origin master  --- pushed to remote
+	
+how to delete branch in locally?
+	git branch -d branch_name
+	
+how to delete remote branch?
+	git push origin -d branch_name
+	
+how to get the remote branch in local?
+	git fetch
+	
+what is git tags?
+	Tag refers to specific points in Git history. Tepicaly 
+people use the tag to mark release points.
+
+how many types of git tags?
+	Two types of tags that is  light weight tag and annotated tag
+	
+what is light weight tags and how to create it?
+	Light weight tag does not give more info, it is just a tag nage.
+	
+what is annotated tag  and how to create it?
+	The annotated tag is a meaning ful tag , where we can give user name , 
+tag message , which perpose we created the tag etc..
+
+how to create annotated tag ?
+	git tag -a tag_name -m "some message"
+	
+how to list all tag?
+	git tag
+		or
+	git tag -l
+
+how to check a particular tag? or how to know who commited the tag? or what is the commit changes in the tag?
+	git show tag_name
+
+how to create light weight tag?
+	git tag tag_name
+	
+how to push tag to remote repository?
+	git push origin tag_name 
+	
+how to create a tag for old commits?
+	git tage tag_name commit_hash_id
+
+how to push multiple tag to remote repository?
+	git push origin --tags
+	
+how to check git log with pretty mode?
+	git log --pretty=oneline
+
+how to delete tag in local snd how to delete all tag in local?
+	git tag -d tag_name
+	
+how to delete tag in remote snd how to delete all tag in remote?
+	git push origin :refs/tags/tag_name
+
+How to delete all tags localy?
+	git tag -d  $(git tag -l)
+
+how to get the tag from the remote?
+	git fetch
+
+How to delete all tags form remote?
+	git push origin --delete $(git tag -l)
+
+	
+	
