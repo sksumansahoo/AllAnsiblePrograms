@@ -1,0 +1,1304 @@
+
+
+What is Ansible? or Why Ansible?
+	Anisble is an open source configuration management and deployment tool written in Python.
+	It can also do IT orchestration, where you have to run tasks in sequence and create a 
+	chain of events which can run on several different servers or devices. 
+	
+What are the other tool similar to Anisble?
+	Salt Stack , CF engine , Chef , Puppet these are the tool similar to Anisble.
+	These tools are konwn as infrastructure as a code.
+	
+What is the meaning of infrastructure as a code?
+	Using these tools we can perform below activity
+		installing software.
+		upgrade of OS
+		Downgrade of OS
+		Install patches
+		deploy application
+	So these tools are konwn as infrastructure as a code.
+
+Adventage in Ansible?
+	Ansible is first processing.
+	we no need to install the agent in the nodes.
+	Ansible work as push mechanisim 
+	Easy to write the program using YAML.
+	Ansible is inbuild SSH.
+	
+Terminology in Ansible?
+	modules , template , inventory file , playbook , roles , tasks , plays , 
+	ansible galexy , ansible tower etc...
+
+What is ansible config file?
+	Some settings in Ansible are adjustable via a configuration file (ansible.cfg).
+	Ansible search its configuration file in following order:
+
+		ANSIBLE_CONFIG (environment variable if set)
+		ansible.cfg (in the current directory)
+		~/.ansible.cfg (in the home directory)
+		/etc/ansible/ansible.cfg
+	If you install ansible through package manager (yum) then the latest ansible.cfg 
+	file should be present in /etc/ansible.
+
+Inventory file / hosts file
+=====================================
+	The Ansible inventory file defines the hosts and groups of hosts upon which 
+	commands, modules, and tasks in a playbook operate.
+	The default location for the inventory file is /etc/ansible/hosts.
+	We can change as per the our Ansible environment and plugins.
+	The inventory file can list individual hosts or user-defined groups of hosts 
+	on which we can perform the some operational and configuration tasks.
+	
+	Example of a hosts file
+	------------------------
+		host1.example.net 		
+		
+		[nodeservers]
+		192.168.33.70
+
+		[routers]
+		router1.example.net 
+		router2.example.net
+		
+		[switches]
+		switch1.example.net
+		switch2.example.net 																							
+
+We can write the inventory file in the form of yaml or json format.
+
+ex-->
+	[uansible@yamlserver ansibleDir]$ cat hosts.yaml
+		---
+		control:
+			hosts:
+				192.168.33.60:
+		yamlnodes:
+			hosts:
+				192.168.33.70:
+				192.168.33.75:
+			vars:
+				ansible_become: true
+				ansible_become_pass: suman345
+		linux:
+			children:
+				yamlnodes:	
+				
+Note --> if you are changing the default path of the "hosts" file then you need
+mention the path in "ansible.cfg " 
+	ex -->
+		[uansible@yamlserver ansible]$ grep -i -v "^#" ansible.cfg | grep -i -v "^$"
+		[defaults]
+		inventory      =/home/uansible/ansibleDir/hosts
+		sudo_user      = root	
+	ex -->
+		[uansible@yamlserver ansible]$ grep -i -v "^#" ansible.cfg | grep -i -v "^$"
+		[defaults]
+		inventory      =/home/uansible/ansibleDir/hosts.yaml
+		sudo_user      = root
+		
+		
+Ping modules
+===============
+	To check the connection with the nodes we can use ping module.
+		[uansible@yamlserver ansibleDir]$ ansible nodeservers -m ping 		# nodeservers is the group of ips
+		
+			192.168.33.70 | SUCCESS => {
+		"ansible_facts": {
+			"discovered_interpreter_python": "/usr/bin/python"
+		},
+		"changed": false,
+		"ping": "pong"
+		}																													
+	
+	To check indivisual ip is pinging or not.
+	----------------------------------------------
+		[uansible@yamlserver ansibleDir]$ ansible 192.168.33.70 -m ping -u uansible
+		
+			192.168.33.70 | SUCCESS => {
+			"ansible_facts": {
+				"discovered_interpreter_python": "/usr/bin/python"
+			},
+			"changed": false,
+			"ping": "pong"
+		}
+	
+	ping with a particular user
+	----------------------------
+	Ansible will default to running from your user account. 
+	If you want to run commands as a different user use "-u usrname"
+	
+		[uansible@yamlserver ansibleDir]$ ansible nodeservers -m ping -u uansible
+		
+			192.168.33.70 | SUCCESS => {
+		"ansible_facts": {
+			"discovered_interpreter_python": "/usr/bin/python"
+		},
+		"changed": false,
+		"ping": "pong"
+		}
+
+ If you want one line output use  "-o" option
+ 
+[uansible@yamlserver ansibleDir]$ ansible -m ping linux -o
+192.168.33.70 | SUCCESS => {"ansible_facts": {"discovered_interpreter_python": "/usr/bin/python"}, "changed": false, "ping": "pong"}
+192.168.33.75 | SUCCESS => {"ansible_facts": {"discovered_interpreter_python": "/usr/bin/python"}, "changed": false, "ping": "pong"}
+[uansible@yamlserver ansibleDir]$
+[uansible@yamlserver ansibleDir]$ ansible -m ping all -o
+192.168.33.75 | SUCCESS => {"ansible_facts": {"discovered_interpreter_python": "/usr/bin/python"}, "changed": false, "ping": "pong"}
+192.168.33.70 | SUCCESS => {"ansible_facts": {"discovered_interpreter_python": "/usr/bin/python"}, "changed": false, "ping": "pong"}
+[uansible@yamlserver ansibleDir]$
+
+		
+what are the different modules ( give some n ames)
+==========================================================
+ping , command , shell , ad-hoc ,  file  , raw , service , debbug , copy , yum  , apt , 
+template , mail , git , user , group , mount , docker 
+
+ad-hoc  module
+===================
+	The ad-hoc module is something which might do something realy fast but donot want to
+save for later.
+	how to ran ad-hoc commands / how to Work with Patterns
+	------------------------------------------------------
+		The basic command consists of "ansible" then host groups from "hosts" to run 
+	against, "-m <module-name>" optionally providing the agrguments via "-a ARGS"
+	
+		ansible <host_group> -m <module_name> -a <arguments>
+		
+	When running any command with the Ansible ad-hoc CLI pay attention to quoting rules
+	using double execute the command in the same machine, where single quotes would 
+	evaluate the variable on the box you were on.
+	
+	[uansible@yamlserver ansibleDir]$ ansible yamlnodes -m shell -a "echo $HOSTNAME"
+		192.168.33.75 | CHANGED | rc=0 >>
+		yamlserver.host			##### here command executed in same machine
+		
+		192.168.33.70 | CHANGED | rc=0 >>
+		yamlserver.host
+	
+	[uansible@yamlserver ansibleDir]$ ansible yamlnodes -m shell -a 'echo $HOSTNAME'
+	
+		192.168.33.70 | CHANGED | rc=0 >>
+		yamlnode1.host			##### here command executed on the box where you were on
+		
+		192.168.33.75 | CHANGED | rc=0 >>
+		yamlnode2.host
+	 
+	 if you want to read the list of hosts from a file, prefix the file name with @.
+		
+		vi ips.txt
+			192.168.33.70
+			192.168.33.75
+			
+		[uansible@yamlserver ansibleDir]$ ansible 192.168.33.* -m ping --limit @ips.txt
+		
+			192.168.33.70 | SUCCESS => {
+				"ansible_facts": {
+					"discovered_interpreter_python": "/usr/bin/python"
+				},
+				"changed": false,
+				"ping": "pong"
+			}
+			192.168.33.75 | SUCCESS => {
+				"ansible_facts": {
+					"discovered_interpreter_python": "/usr/bin/python"
+				},
+				"changed": false,
+				"ping": "pong"
+			}
+	
+	if you want to use all hosts form the inventory in ansible you can use
+	"all" or "*"
+		
+		[uansible@yamlserver ansibleDir]$ ansible all -m ping --limit @ips.txt
+						or
+		[uansible@yamlserver ansibleDir]$ ansible 192.168.33.* -m ping --limit @ips.txt
+		
+			192.168.33.75 | SUCCESS => {
+				"ansible_facts": {
+					"discovered_interpreter_python": "/usr/bin/python"
+				},
+				"changed": false,
+				"ping": "pong"
+			}
+			192.168.33.70 | SUCCESS => {
+				"ansible_facts": {
+					"discovered_interpreter_python": "/usr/bin/python"
+				},
+				"changed": false,
+				"ping": "pong"
+			}
+	
+How to get the hostname 
+-----------------------------
+	ansible  -i  /home/ujam/ansibleDir/hosts.yaml  all  -a "hostname -s" -o
+			192.168.33.95 | CHANGED | rc=0 | (stdout) jenkinMaster
+			192.168.33.97 | CHANGED | rc=0 | (stdout) jenkinslave1
+			192.168.33.99 | CHANGED | rc=0 | (stdout) jenkinslave2
+			192.168.33.60 | CHANGED | rc=0 | (stdout) yamlserver
+ 
+	 
+	Using ad-hoc module we can do all the below activity
+		Parallelism and Shell Commands
+		Gathering Facts
+		File Transfer
+		Managing Packages
+		Users and Groups
+		Deploying From Source Control
+		Managing Services
+		Time Limited Background Operations
+		
+	
+command module and Shell Commands
+-----------------------------------
+	reboot the system parallely using command module
+	
+	*)	To run the "reboot" command on all servers in a group.
+		
+	in this case, group name is "east" in 5 parallel forks:
+		ansible east -m command -a "/sbin/reboot" -f 5 		# -a is arguments , -f is fork / --fork
+		
+	*)  ansible yamlnodes -m command -a 'ls -lR'
+	*)  ansible yamlnodes -m command -a 'mkdir -p /home/uansible/yamlDir/ansibleTopic'
+	
+Difference between command module and shell module
+=====================================================
+The command module does not support extended shell syntax like piping and redirects.
+In command module we can use  shell variables.
+
+If command requires shell-specific syntax, we need to use the shell module instead.
+
+When running any command with the Ansible ad-hoc CLI pay attention to quoting rules
+using double execute the command in the same machine, where single quotes would 
+evaluate the variable on the box you were on.
+	
+	[uansible@yamlserver ansibleDir]$ ansible yamlnodes -m shell -a 'cat /home/uansible/yamlDir/ansibleOptions.txt | grep -i fork'
+		192.168.33.70 | CHANGED | rc=0 >>
+		  -f FORKS, --forks=FORKS
+
+		192.168.33.75 | CHANGED | rc=0 >>
+		  -f FORKS, --forks=FORKS
+
+	[uansible@yamlserver ansibleDir]$ ansible yamlnodes -m shell -a 'echo $HOSTNAME'
+	192.168.33.70 | CHANGED | rc=0 >>
+	yamlnode1.host
+	
+	192.168.33.75 | CHANGED | rc=0 >>
+	yamlnode2.host
+	
+	*)	Ansible will default to running from your user account. 
+	If you want to run commands as a different user use "-u usrname"
+	
+	[uansible@yamlserver ansibleDir]$ ansible yamlnodes -m shell -a "ls" -u uansible
+		
+		192.168.33.70 | CHANGED | rc=0 >>
+		a
+		destinationsample.txt
+		destinationSample.txt
+		
+		192.168.33.75 | CHANGED | rc=0 >>
+		a
+		destinationsample.txt
+		destinationSample.txt
+	
+	*) if you are not using a passwordless privilege for different user
+	we can use  "-k --become" it will interactively prompt you for the password to use.
+	if you are not using any user "-u user_name" then default will be "root" user.
+	
+	[uansible@yamlserver ansibleDir]$ ansible yamlnodes -m shell -a "ls" -u uansible -k --become
+		SSH password:
+		192.168.33.70 | CHANGED | rc=0 >>
+		a
+		destinationsample.txt
+		destinationSample.txt
+		
+		192.168.33.75 | CHANGED | rc=0 >>
+		a
+		destinationsample.txt
+		destinationSample.txt
+	
+	*) It is also possible to become a user other than root using "--become-user"
+	
+		ansible yamlnodes -m shell -a "ls" -u uansible -k --become --become-user uansible 
+	
+		SSH password:
+		192.168.33.70 | CHANGED | rc=0 >>
+		a
+		destinationsample.txt
+		destinationSample.txt
+		
+		192.168.33.75 | CHANGED | rc=0 >>
+		a
+		destinationsample.txt
+		destinationSample.txt
+
+
+Gathering facts / setup module
+=====================================
+	By useing "setup" module you can gather fact about the hosts
+	
+		ansible -m setup all
+		
+		ansible -m setup 192.168.33.75
+
+copy module / File module 
+=====================================
+	*) The "copy" module use to copy file to multiple nodes concurrently from server to node.
+	
+	src ==> source 
+	dest ==> destination
+	
+	[uansible@yamlserver ansibleDir]$ ansible yamlnodes -m copy -a "src=/home/uansible/ansibleDir/sample.txt
+dest=/home/uansible/destinationSample.txt"
+
+
+	*) Using the "file" module we can transfer the file as well as change the ownership and permissions on files. 
+		
+		[uansible@yamlserver ansibleDir]$ ansible yamlnodes -m file -a "dest=/home/uansible/destinationSample.txt mode=600"
+		
+		[uansible@yamlserver ansibleDir]$ ansible yamlnodes -m file -a 'dest=/home/uansible/destinationSample.txt mode=777 owner=ansible group=ansible' --ask-pass -K --become
+								or
+		[uansible@yamlserver ansibleDir]$ ansible yamlnodes -m file -a 'dest=/home/uansible/destinationSample.txt mode=777 owner=ansible group=ansible' --ask-become-pass -K --become
+		
+	difference between  " --ask-become-pass " and " --ask-pass"
+	-------------------------------------------------------------------
+		for password authentication we can use "--ask-pass".
+		If using sudo features and when sudo requires a password, also supply "--ask-become-pass"
+
+	
+	*) The file module can also create directories, similar to mkdir -p
+		
+		[uansible@yamlserver ansibleDir]$ ansible yamlnodes -m file -a "dest=/home/uansible/testDir mode=775 owner=ansible group=uansible state=directory" -u uansible
+							or by using sudo
+		[uansible@yamlserver ansibleDir]$ ansible yamlnodes -m file -a "dest=/home/uansible/testDir mode=775 owner=ansible group=uansible state=directory" --ask-become-pass -K --become
+
+	*) Also using "file" module we can delete directories (recursively) and delete files:
+	
+		 ansible yamlnodes -m file -a "dest=/home/uansible/ state=absent" --ask-become-pass -k --become
+	
+	Different state in file module
+	-----------------------------------
+	  absent , directory ,hard ,link , touch
+	  
+	  absent --> delete directories (recursively) and delete files
+	  directory --> create directories, similar to mkdir -p
+	  hard	--> create or change  hard link
+	  link --> create or change  symbolic  link
+	  touch --> an empty file will be created if file not exist in the path, else updated file access and modification times
+
+playbook
+============	  
+Lets consider an example to create file through playbook
+=================================================================
+playbook uses 4 space indentation and use 'ansible-playbook' to execute playbook
+
+[uansible@yamlserver ansibleDir]$ cat  createAfile.yml
+---
+- hosts: yamlnodes
+  tasks:
+      - name: create a file using ansible
+        file:
+            path: "/home/uansible/yamlDir/ansibleTopic/playbookFile"
+            state: touch
+[uansible@yamlserver ansibleDir]$
+
+check the syntax of the playbook
+----------------------------------------------
+ansible-playbook createAfile.yml --syntax-check
+
+execute playbook
+--------------------
+ ansible-playbook createAfile.yml
+ 
+ 
+EX2 ---> create file with data using copy module in yaml.
+-------------------------------------------------------------
+
+[uansible@yamlserver playbooks]$ cat 2createFileWithDat.yml
+---
+- hosts: yamlnodes
+  tasks:
+  - name: Create file with the containt using copy module
+    copy:
+      dest: "/home/uansible/yamlDir/ansibleTopic/fileWithData.txt"
+      content:
+        I am reading playbook.
+        To create file with the containt i am using copy module
+        copy module has an option "content" to write the content in file.
+[uansible@yamlserver playbooks]$
+
+
+Loop in ansible
+==========================
+in ansible "{{ item }}" create a loop and check for "with_items" option.
+
+EX3--> Create multiple files using "file" module and "with_items" option in ansible yaml code
+-----------------------------------------------------------------------------------------
+
+[uansible@yamlserver playbooks]$ cat 3createMutiFile.yml
+---
+- hosts: yamlnodes
+  tasks:
+  - name: Create multiple files using "file" module and "with_items" option in ansible yaml code
+    file:
+      path: "/home/uansible/yamlDir/ansibleTopic/{{item}}"
+      state: touch
+      mode: 0775
+    with_items:
+    - accessfile.log
+    - systemfile.log
+    - propertiesfile.txt
+    - conffile.log
+[uansible@yamlserver playbooks]$
+
+Ex4 --->  create muiltple file with different permissions
+------------------------------------------------------------------
+
+[uansible@yamlserver playbooks]$ cat 4multiFileWithDiffPermission.yml
+---
+- hosts: yamlnodes
+  tasks:
+  - name: Create multiple file with different permision
+    file:
+      path: "/home/uansible/yamlDir/ansibleTopic/{{item.location}}"
+      state: touch
+      mode: "{{item.mode}}"
+    with_items:
+    - {location: '4_file1.txt' , mode: '0644'}
+    - {location: '4_file2.txt' , mode: '0750'}
+[uansible@yamlserver playbooks]$
+
+Append a line to an existing file in nodeservers. / lineinfile module
+==========================================================================
+the 'lineinfile' module ensures a particular line is in a file, or replace 
+an existing (single line)line using a back-referenced regular expression.
+
+if you want to change multiple lines then the 'lineinfile' module is not useful.
+you have to use  copy or template modules
+
+	ansible yamlnodes -m lineinfile -a 'dest=/home/uansible/yamlDir/ansibleTopic/playbookFile line="the 'lineinfile' module ensures a particular line is in a file"'
+
+Managing Packages / yum module / apt module
+===================================================
+This module use to install , update and uninstall the package.
+
+	Let install "httpd" on ansible nodes.
+		ansible yamlnodes -m yum -a "name=httpd state=present" 
+	but you may get below error.
+		"   "msg": "You need to be root to perform this command.\n",  "
+		
+so we can become a root user by using  "-b" or by "become-user"
+	ansible yamlnodes -m yum -a "name=httpd state=present" -b
+			or
+	ansible yamlnodes -m yum -a "name=httpd state=present" --become-user root
+	
+To verify login to node and execute below command 
+	[uansible@yamlnode1 yamlDir]$ rpm -qa  httpd
+		httpd-2.4.6-90.el7.centos.x86_64
+	[uansible@yamlnode1 yamlDir]$
+
+For installing a package we can use the state=present , for removing a package use
+state=absent and for the latest version installation we can use state=latest
+
+Start , stop the services / service module
+==================================================
+In service module value of state must be one of: reloaded, restarted, started, stopped
+
+To start service
+	 ansible yamlnodes -m service -a "name=httpd state=started" -b
+To stop service
+	 ansible yamlnodes -m service -a "name=httpd state=stopped" -b
+	 
+####### write a play book to install httpd package
+
+[uansible@yamlserver playbooks]$ cat 5installPackage.yml
+---
+- hosts: yamlnodes
+  tasks:
+    - name: vreify http package has installed or not
+      yum:
+          name: httpd
+          state: present
+	  become: true     # execute the tasks as a Root user
+	  
+[uansible@yamlserver playbooks]$
+
+exeucte using    ansible-playbook 5installPackage.yml
+
+####### write a play book to uninstall/remove httpd package
+
+[uansible@yamlserver playbooks]$ cat 6removePackage.yml
+---
+- hosts: yamlnodes
+  tasks:
+    - name: remove httpd package
+      yum:
+          name: httpd
+          state: absent
+      become: true
+[uansible@yamlserver playbooks]$
+
+execute using "  ansible-playbook  6removePackage.yml "
+
+
+########### check the package is installed or not
+
+create my_rpms file with all the package names
+
+[uansible@yamlserver playbooks]$ cat my_rpms
+httpd
+samba
+[uansible@yamlserver playbooks]$
+
+[uansible@yamlserver playbooks]$ cat 8checkSWstatus.yml
+---
+- hosts: yamlnodes
+  tasks:
+     - name: chcek the software is installed or not
+       yum:
+         list: my_rpms
+       register: is_install_or_not
+     - name: conditionally do the next things
+       debug:
+         msg: "not installed"
+       when: is_install_or_not.results | selectattr("yumstate", "match") | list | length == 0
+[uansible@yamlserver playbooks]$
+
+
+############ check the service status 
+
+[uansible@yamlserver playbooks]$ cat 7checkServiceStatus.yml
+---
+- hosts: yamlnodes
+  tasks:
+     - name: Check the status of the services
+       command: systemctl status "{{ item }}"
+       with_items:
+       - firewalld
+       - sshd
+       register: var_result  # register is used when you want to capture the output of a task to a variable.
+       ignore_errors: yes
+     - name: showing report
+       debug:
+         var: var_result    # print the register variable value
+[uansible@yamlserver playbooks]$
+
+ tags in ansible playbook
+===================================
+Tags help Ansible tasks to be selected from play-book. 
+If you need to execute only certain specific tasks you 
+can specify the tags needed while executing the ansible-playbook.
+
+========== install git using playbook ===============
+[ujam@yamlserver playbooks]$ cat installgit.yml
+---
+- hosts: "{{ hostname }}"
+  gather_facts: False
+  vars:
+    - packages: ["git"]
+  tasks:
+    - name: Installing {{ packages }} on {{ hostname }}
+      yum:
+        name: "{{ item }}"
+        state: present
+      with_items: "{{ packages }}"
+	  
+[ujam@yamlserver playbooks]$ ansible-playbook  -i /home/ujam/ansibleDir/hosts.yaml installgit.yml  -e "hostname=192.168.33.97"
+
+========== Creating the initial ( private ) Git repository ===============
+
+- hosts: "{{ hostname }}"
+  gather_facts: False
+  tasks:
+    - name: git init --bare {{ project }} with the command module
+      command: git init --bare {{project}}
+      args:
+        chdir: "{{ git_base_dir }}"
+      become_user: ujam					
+   
+    - name: Set the permissions on {{ git_base_dir }}/{{ project }}
+      file:
+        path: "{{ git_base_dir }}/{{ project }}"
+        state: directory
+        mode: 0755
+        recurse: True
+
+[ujam@yamlserver playbooks]$ ansible-playbook  -i /home/ujam/ansibleDir/hosts.yaml initializeGitRepo.yml  --extra-vars="hostname=192.168.3
+3.97 git_base_dir=/home/ujam/allProjects project=HollowTriangle"
+
+How to use tags
+-----------------
+	while executing ansible-playbook in command line we can use  
+--tags to include the tags, and --skip-tags to exclude the tags.
+
+
+========== install and uninstall git using playbook ===============
+
+[uansible@yamlserver playbooks]$ cat 9installNuninstallGit.yml
+---
+- hosts: yamlnodes
+  become: yes
+  gather_facts: False
+  tasks:
+     - name: installing git
+       yum:
+         name: git
+         state: present
+       tags: install
+     - name: uninstalling git
+       yum:
+         name: git
+         state: absent
+       tags: uninstall
+[uansible@yamlserver playbooks]$
+
+we can execute the play-book as below using the tags
+	ansible-playbook 9installNuninstallGit.yml  --tags "install"  # to install git
+				or
+	ansible-playbook 9installNuninstallGit.yml  --skip-tags "uninstall"
+	 
+# to uninstall git we can use the below
+	ansible-playbook 9installNuninstallGit.yml  --skip-tags "uninstall"
+
+What is roles in ansible
+===============================
+	The role enables the sharing and reuse of ansible task.
+It contains ansible playbook tasks, all supported files , variables ,
+template and hanlers needed to run the tasks.
+	======== ( ex ) how to write yaml for roles ====  ==
+	|| ---
+	|| - host: mynodes
+	||   roles:
+	||     - installGit		# this is the folders
+	||     - installNexus  # this is the folders
+	||
+	==================================================
+    In particular terms a role is a directory structure containing all the 
+the files, variables , hanlers, jinja templates and tasks needed to automate
+a workflow. when a role is created the default directory structure contain 
+the following.
+	Each directory must contain a main.yml file.
+	 
+	defaults: contains default variables for the role. 
+Variables in default have the lowest priority so they are easy to override.
+
+	vars: contains variables for the role. 
+Variables in vars have higher priority than variables in defaults directory.
+
+	tasks: contains the main list of steps to be executed by the role.
+
+	files: contains files which we want to be copied to the remote host. 
+We dont need to specify a path of resources stored in this directory.
+
+	templates: contains file template which supports modifications from the role. 
+We use the Jinja2 templating language for creating templates.
+
+	meta: contains metadata of role like an author, support platforms, dependencies.
+
+	handlers: contains handlers which can be invoked by notify directives 
+and are associated with service.
+
+
+
+How we can create the roles
+==================================
+	Using ansible galexy we can create roles.
+
+	ansible-galaxy init <required_app_name>
+	
+	EX--> ansible-galaxy init jms_test
+	
+	It will ceate the folder structure inside this folder "jms_test".
+	
+	[uansible@yamlserver jms_test]$ tree
+			.
+			 defaults
+			  main.yml
+			 files
+			 handlers
+			  main.yml
+			 meta
+			  main.yml
+			 README.md
+			 tasks
+			  main.yml
+			 templates
+			 tests
+			  inventory
+			  test.yml
+			 vars
+				 main.yml
+			
+			8 directories, 8 files
+	[uansible@yamlserver jms_test]$
+
+### Lets create role to install tomcat using ansible-galaxy
+
+[uansible@yamlserver galaxy_role]$ mkdir tomcat_latest
+[uansible@yamlserver galaxy_role]$ cd tomcat_latest/
+[uansible@yamlserver tomcat_latest]$ ansible-galaxy init tomcat
+- tomcat was created successfully
+[uansible@yamlserver tomcat_latest]$
+[uansible@yamlserver tomcat_latest]$ cd tomcat/
+[uansible@yamlserver tomcat]$ tree
+.
+ defaults
+  main.yml
+ files
+ handlers
+  main.yml
+ meta
+  main.yml
+ README.md
+ tasks
+  main.yml
+ templates
+ tests
+  inventory
+  test.yml
+ vars
+     main.yml
+
+8 directories, 8 files
+[uansible@yamlserver tomcat]$ cd tasks/
+[uansible@yamlserver tasks]$ vi main.yml
+####	================ write the below code ===========
+
+[uansible@yamlserver ~]$ cd /home/uansible/ansibleDir/galaxy_role/tomcat_latest/tomcat/tasks
+[uansible@yamlserver tasks]$ cat main.yml
+---
+# task file for tomcat
+- name: Download tomcat package
+  #command: " wget http://apachemirror.wuchna.com/tomcat/tomcat-9/v9.0.27/bin/apache-tomcat-9.0.27.zip"
+  command: " wget http://apachemirror.wuchna.com/tomcat/tomcat-9/v9.0.27/bin/apache-tomcat-9.0.27.zip"
+  args:
+     chdir: /tmp/
+
+- name: install java package
+  yum:
+     name: "{{ item }}"
+     state: present
+     update_cache: yes
+  with_items:
+    - java-1.8.0-openjdk
+
+- name: Extract tomcat from archive
+#  command: tar -zxvf /tmp/apache-tomcat-9.0.27.zip -c /opt/apache-tomcat-9.0.27
+#  args:
+#     chdir: /tmp/
+  unarchive:
+     src: /tmp/apache-tomcat-9.0.27.zip
+     remote_src: yes
+     #dest: /opt/apache-tomcat-9.0.27
+     dest: /opt/
+
+- name: Ansible template with_items
+  template:
+     src: "{{ item.src }}"
+     dest: "{{ item.dest }}"
+     mode: 0777
+     backup: yes
+     owner: root
+     group: root
+  with_items:
+     - {src: '/home/uansible/ansibleDir/galaxy_role/tomcat_latest/tomcat/templates/context.xml' , dest: '/opt/apache-tomcat-9.0.27/webapps/manager/META-INF/'}
+     - {src: '/home/uansible/ansibleDir/galaxy_role/tomcat_latest/tomcat/templates/tomcat-users.xml' , dest: '/opt/apache-tomcat-9.0.27/conf/'}
+     - {src: '/home/uansible/ansibleDir/galaxy_role/tomcat_latest/tomcat/templates/host-manager.xml' , dest: '/opt/apache-tomcat-9.0.27/conf/Catalina/localhost/'}
+     - {src: '/home/uansible/ansibleDir/galaxy_role/tomcat_latest/tomcat/templates/manager.xml' , dest: '/opt/apache-tomcat-9.0.27/conf/Catalina/localhost/'}
+
+- name: copy a sample war file or artifact to document root
+  copy:
+     src: /home/uansible/otherDir/sample.war
+     dest: /opt/apache-tomcat-9.0.27/webapps/sample.war
+
+- name: Change mode for startup and shutdown script
+  file:
+     path: "{{ item }}"
+     mode: 0777
+     owner: root
+     group: root
+  with_items:
+     - '/opt/apache-tomcat-9.0.27/bin/shutdown.sh'
+     - '/opt/apache-tomcat-9.0.27/bin/startup.sh'
+     - '/opt/apache-tomcat-9.0.27/bin/catalina.sh'
+
+#- name: Enable port
+#  firewalld:
+#    zone: dmz
+    #service: http
+#    port: 8080/tcp
+#    permanent: yes
+#    state: enabled
+
+- name: enable firewall or iptable for http
+  vars:
+    enable_http: yes
+  iptables:
+    chain: INPUT
+    protocol: udp
+    destination_port: "8080"
+    jump: ACCEPT
+  when: enable_http
+
+- name: Enable port
+  firewalld:
+    #zone: dmz
+    #service: http
+    port: 8080/tcp
+    permanent: yes
+    state: enabled
+
+- name: stop tomcat
+  command: nohup /opt/apache-tomcat-9.0.27/bin/shutdown.sh
+  tags: shutdown_tomcat
+
+- name: start tomcat
+  command: nohup /opt/apache-tomcat-9.0.27/bin/startup.sh
+  tags: startup_tomcat
+[uansible@yamlserver tasks]$
+  
+======================  
+	 
+cd /home/uansible/ansibleDir/galaxy_role/tomcat_latest
+
+[uansible@yamlserver tomcat_latest]$ vi tomcat_setup.yml
+
+---
+- hosts: yamlnodes
+  gather_facts: true
+  remote_user: uansible
+  become: true
+  become_method: sudo
+  
+  roles:
+     - tomcat
+
+	 
+======================  
+	kept these below xml files for tomcat-9 in template folder
+
+[uansible@yamlserver ~]$ cd /home/uansible/ansibleDir/galaxy_role/tomcat_latest/tomcat/templates
+[uansible@yamlserver templates]$ ls -lrt
+total 16
+-rw-rw-r--. 1 uansible uansible 1234 Nov 22 05:21 context.xml
+-rw-rw-r--. 1 uansible uansible 2544 Nov 22 05:24 tomcat-users.xml
+-rw-rw-r--. 1 uansible uansible  237 Nov 22 05:28 host-manager.xml
+-rw-rw-r--. 1 uansible uansible  233 Nov 22 05:29 manager.xml
+[uansible@yamlserver templates]$
+
+====================== 
+
+[uansible@yamlserver ~]$ cd /home/uansible/otherDir
+[uansible@yamlserver otherDir]$ ls -lrt
+total 8
+-rw-r--r--. 1 root root 4606 Nov 19  2015 sample.war
+[uansible@yamlserver otherDir]$
+
+====================== 
+Execute the play-book as below
+
+[uansible@yamlserver ~]$
+[uansible@yamlserver ~]$ cd /home/uansible/ansibleDir/galaxy_role/tomcat_latest
+[uansible@yamlserver tomcat_latest]$ ls -lrtr
+total 4
+drwxrwxr-x. 10 uansible uansible 135 Nov 21 23:10 tomcat
+-rw-rw-r--.  1 uansible uansible 131 Nov 22 03:33 tomcat_setup.yml
+[uansible@yamlserver tomcat_latest]$
+[uansible@yamlserver tomcat_latest]$ ansible-playbook tomcat_setup.yml
+
+ ======================
+How to execute
+	[uansible@yamlserver tomcat_latest]$
+	[uansible@yamlserver tomcat_latest]$ ansible-playbook tomcat_setup.yml   --skip-tags "shutdown_tomcat" 
+
+
+  ======================   ======================   ====================== 
+
+Ansible vault
+=================
+	Ansible Vault is a feature of ansible that allows you to keep 
+sensitive data such as passwords or keys in encrypted files, 
+rather than as plaintext in playbooks or roles. 
+For example database user name , database password, email user name 
+email password , any server url or any ssh key etc. These vault files 
+can then be distributed or placed in source control.
+	ansible-vault command is used to edit files.
+
+How to create new ansible Vault file ?
+		ansible-vault create file_name  # it will create a new file in encrypted form
+		
+	ex-->
+		[uansible@yamlserver ~]$ cd /home/uansible/ansibleDir/yamlVault
+		[uansible@yamlserver yamlVault]$ ansible-vault create vaultdemo.txt
+		New Vault password:
+		Confirm New Vault password:
+		[uansible@yamlserver yamlVault]$
+		[uansible@yamlserver yamlVault]$ cat vaultdemo.txt
+$ANSIBLE_VAULT;1.1;AES256
+39386335633735373861633836373865393735356661363438366561643665663031363935633161
+3334636632313066656538326431656531623264646331380a323231616266386262656364313333
+37323732363561346235653438346665636566306166346334623565666563303831336437316664
+3464356330363137660a653666626539346131636533633665323466316538313461616132636334
+63386465393366626331633961343031363464373765323530323734343239366339306566386338
+3164356239346537626635656239653366383231303939353265
+		[uansible@yamlserver yamlVault]$
+
+How to view the content of the file which is created with ansible vault?
+		ansible-vault  view  file_name
+	ex-->
+		[uansible@yamlserver yamlVault]$ ansible-vault view vaultdemo.txt
+		Vault password:					# use same password which is used at the time of creation of file
+		file created using anisble vault
+		[uansible@yamlserver yamlVault]$    
+	
+How to edit the content of the file which is created with ansible vault?	
+		ansible-vault  edit  file_name
+	ex-->
+		[uansible@yamlserver yamlVault]$ ansible-vault edit vaultdemo.txt
+		Vault password:
+		2L, 36C written
+		[uansible@yamlserver yamlVault]$ ansible-vault view vaultdemo.txt
+		Vault password:
+		file created using anisble vault
+		ok
+		[uansible@yamlserver yamlVault]$  
+
+How to change vault password for a file which is created with anisble vault?
+		ansible-vault  rekey  file_name
+	ex-->		
+		[uansible@yamlserver yamlVault]$ ansible-vault rekey vaultdemo.txt
+		Vault password:
+		New Vault password:
+		Confirm New Vault password:
+		Rekey successful
+		[uansible@yamlserver yamlVault]$
+		
+How to remove the password for a file which is created with anisble vault?
+		ansible-vault  decrypt  file_name  # file will open normaly without password
+	ex-->
+		[uansible@yamlserver yamlVault]$ ansible-vault decrypt vaultdemo.txt
+		Vault password:
+		Decryption successful
+		[uansible@yamlserver yamlVault]$ cat vaultdemo.txt
+		file created using anisble vault
+		ok
+		[uansible@yamlserver yamlVault]$
+
+How to encrypt an existing file using ansible vault?
+		ansible-vault  encrypt  existing_file_name 
+	ex-->
+		[uansible@yamlserver yamlVault]$ ls
+		createAfile.yml  vaultdemo.txt
+		
+		[uansible@yamlserver yamlVault]$
+		[uansible@yamlserver yamlVault]$ cat createAfile.yml
+		---
+		- hosts: yamlnodes
+		tasks:
+			- name: create a file using ansible
+				file:  # this is the module name
+					path: "/home/uansible/yamlDir/ansibleTopic/playbookFile"
+					state: touch
+		
+		[uansible@yamlserver yamlVault]$
+		[uansible@yamlserver yamlVault]$ ansible-vault encrypt createAfile.yml
+		New Vault password:
+		Confirm New Vault password:
+		Encryption successful
+		
+		[uansible@yamlserver yamlVault]$ cat createAfile.yml
+		$ANSIBLE_VAULT;1.1;AES256
+		33373966633461313730363664613264373266646135363637306663303636383034393837636164
+		6436343639643730333930613335333366316363316361360a633439663737653166353034623565
+		64666263373733316137313463346134656435373539626334323731613664626662306264643433
+		656630393265646537653238383765373538
+		[uansible@yamlserver yamlVault]$
+
+Once the file is encrypt no one can execute the play-book.
+	[uansible@yamlserver yamlVault]$ ansible-playbook createAfile.yml
+	ERROR! Attempting to decrypt but no vault secrets found
+	[uansible@yamlserver yamlVault]$
+
+So to execute this playbook we can use  "--ask-vault-pass" argument.
+This argument will ask to enter the vault password.
+
+		[uansible@yamlserver yamlVault]$
+		[uansible@yamlserver yamlVault]$ ansible-playbook createAfile.yml --ask-vault-pass
+		Vault password:
+		
+		PLAY [yamlnodes] *************************************************************************************************************************
+		
+		TASK [Gathering Facts] *******************************************************************************************************************
+		ok: [192.168.33.75]
+		
+		TASK [create a file using ansible] *******************************************************************************************************
+		changed: [192.168.33.75]
+		
+		PLAY RECAP *******************************************************************************************************************************
+		192.168.33.75              : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+		
+		[uansible@yamlserver yamlVault]$
+
+How to read vault data using playbook?
+
+	[uansible@yamlserver ~]$ cd /home/uansible/ansibleDir/galaxy_role
+	[uansible@yamlserver readVaultData]$ ansible-galaxy init readVaultDat
+	- readVaultDat was created successfully
+	[uansible@yamlserver readVaultData]$
+	[uansible@yamlserver readVaultData]$ tree
+		.
+		 readVaultDat
+			 defaults
+			  main.yml
+			 files
+			 handlers
+			  main.yml
+			 meta
+			  main.yml
+			 README.md
+			 tasks
+			  main.yml
+			 templates
+			 tests
+			  inventory
+			  test.yml
+			 vars
+				 main.yml
+
+	9 directories, 8 files
+	[uansible@yamlserver readVaultData]$
+
+Lets encrypt the main.yml file in vars directory.
+	
+	[uansible@yamlserver ~]$ cd /home/uansible/ansibleDir/galaxy_role/readVaultData/readVaultDat/vars
+	[uansible@yamlserver vars]$ vi main.yml
+	[uansible@yamlserver vars]$  6L, 72C written
+	[uansible@yamlserver vars]$ cat main.yml
+	---
+	# vars file for readVaultDat
+	usename: sumanta
+	password: summan345
+	
+	[uansible@yamlserver vars]$ ansible-vault  encrypt main.yml
+	New Vault password:
+	Confirm New Vault password:
+	Encryption successful
+	[uansible@yamlserver vars]$ cat main.yml
+	$ANSIBLE_VAULT;1.1;AES256
+	64333730333330363533653631363434633738623462343832386638386661303732653231613135
+	6462626362306562313865643231646266663532383565320a333331383835306139623664393133
+	32666365653137613864303931616639613638376661373266653837353435376336616466643639
+	6431333335363863660a316164393630653363333831316162623164646135636264613931333932
+	35643961383038383363366531343039646562636163316231633734363164636436643461303139
+	39643566383062346638386430336538313165653639356434663762656636396133623766633431
+	62393535326437623764626265613433356166613934363636623463396431636662366638323535
+	34613931653136333061
+	[uansible@yamlserver vars]$
+	
+	[uansible@yamlserver vars]$
+	[uansible@yamlserver vars]$ ansible-vault  edit main.yml
+	Vault password:
+	6L, 73C written
+	[uansible@yamlserver vars]$ ansible-vault  view main.yml
+	Vault password:
+	---
+	# vars file for readVaultDat
+	username: sumanta
+	password: summan345
+	
+	[uansible@yamlserver vars]$       
+	
+Now write a playbook in task folder to read the data from the vault file
+
+	[uansible@yamlserver ~]$ cd /home/uansible/ansibleDir/galaxy_role/readVaultData/readVaultDat/tasks
+	[uansible@yamlserver tasks]$ vi main.yml
+	[uansible@yamlserver tasks]$
+	[uansible@yamlserver tasks]$ cat main.yml
+	---
+	# tasks file for readVaultDat
+	- name: get the user name using debug module
+	debug:
+	msg: "my user name is {{ username }}"
+	[uansible@yamlserver tasks]$	
+	
+Now create the playbook to execute the task in role.
+
+	[uansible@yamlserver ~]$ cd  /home/uansible/ansibleDir/galaxy_role/readVaultData
+	[uansible@yamlserver readVaultData]$ vi getVaultData.yml
+	[uansible@yamlserver readVaultData]$  [New] 6L, 88C written
+	[uansible@yamlserver readVaultData]$
+	[uansible@yamlserver readVaultData]$ cat getVaultData.yml
+	---
+	- hosts: yamlnodes
+	become: yes
+	gather_facts: False
+	roles:
+		- readVaultDat
+	[uansible@yamlserver readVaultData]$
+
+Now check the syntax in the playbook.
+
+	[uansible@yamlserver readVaultData]$ ansible-playbook  getVaultData.yml  --ask-vault-pass --syntax-check
+	Vault password:
+	
+	playbook: getVaultData.yml
+	[uansible@yamlserver readVaultData]$
+
+Now lets execute the playbook
+	[uansible@yamlserver readVaultData]$ ansible-playbook  getVaultData.yml  --ask-vault-pass
+	Vault password:
+	
+	PLAY [yamlnodes] *************************************************************************************************************************
+	
+	TASK [readVaultDat : get the user name using debug module] *******************************************************************************
+	ok: [192.168.33.75] => {
+		"msg": "my user name is sumanta"
+	}
+	
+	PLAY RECAP *******************************************************************************************************************************
+	192.168.33.75              : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+	
+	[uansible@yamlserver readVaultData]$
+	
+How to send mail using ansible-playbook  and ansible-vault?
+
+	[uansible@yamlserver galaxy_role]$ mkdir sendMail
+	[uansible@yamlserver galaxy_role]$
+	[uansible@yamlserver galaxy_role]$ cd sendMail/
+	[uansible@yamlserver sendMail]$ ansible-galaxy init mail
+	- mail was created successfully
+	[uansible@yamlserver sendMail]$
+	[uansible@yamlserver sendMail]$ cd mail
+	[uansible@yamlserver mail]$ tree
+	.
+	 defaults
+	  main.yml
+	 files
+	 handlers
+	  main.yml
+	 meta
+	  main.yml
+	 README.md
+	 tasks
+	  main.yml
+	 templates
+	 tests
+	  inventory
+	  test.yml
+	 vars
+		 main.yml
+	
+	8 directories, 8 files
+	[uansible@yamlserver mail]$
+
+Now keep the password variable in main.yml in vars folder and encrypt it.
+
+	[uansible@yamlserver mail]$ cd vars
+	[uansible@yamlserver vars]$ vi main.yml
+	[uansible@yamlserver vars]$ cat main.yml
+	---
+	# vars file for mail
+	password: SaraswatiSahoo
+	[uansible@yamlserver vars]$ ansible-vault encrypt main.yml
+	New Vault password:
+	Confirm New Vault password:
+	Encryption successful
+	[uansible@yamlserver vars]$ cat main.yml
+	$ANSIBLE_VAULT;1.1;AES256
+	35303634653535363565616633386333353033356662396235663331666463353261323931643935
+	6137373663653733633432666533653035383265643363340a376166373266346365666539346537
+	62383139323162326537643861316465333734356432393234356537626663343264353764333536
+	3161663739303634640a303862383534626131613038343665343438316666356434323036613534
+	36633039386433383465653039633134323963326266636134626632663536316436393662366666
+	31633934363432636137353139376466333165653839663937653233376465646462316233663331
+	336430313138363430333831333231303138
+	[uansible@yamlserver vars]$
+
+	
+[uansible@yamlserver ~]$ cd /home/uansible/ansibleDir/galaxy_role/sendMail/mail/tasks
+[uansible@yamlserver tasks]$ cat main.yml
+---
+# tasks file for mail
+- name: send mail using Gmail server
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    #port: 465
+    secure: starttls
+    charset: utf-8
+    sender: sumanta.sahoo98@gmail.com
+    username: sumanta.sahoo98@gmail.com
+    password: "{{ password }}"
+    to: sumanta.sahoo98@gmail.com
+    subject: ansible-report
+    body: version comparision "{{ ansible_distribution_version is version('7', '>=') }}"
+[uansible@yamlserver tasks]$
+
+
+[uansible@yamlserver ~]$ cd /home/uansible/ansibleDir/galaxy_role/sendMail
+[uansible@yamlserver sendMail]$ ls
+mail  mailSend.yml
+[uansible@yamlserver sendMail]$ cat mailSend.yml
+---
+- hosts: yamlnodes
+  become: yes
+  gather_facts: true
+  roles:
+     - mail
+[uansible@yamlserver sendMail]$
+
+Execute
+-------
+	[uansible@yamlserver sendMail]$ ansible-playbook mailSend.yml --ask-vault-pass
+	Vault password:
+
+
+
+
+
+What is adventage and disadventage of vault
+	without vault password on one can read or access the file.
+	disadventage is with vault password one can do any thing.
+	
+ 
+
+===========
+
+when we want to pass an external file as an argument to read the value of the 
+variables we need to use @
+
+ex -->
+##################################################################################
+[ujam@yamlserver playbooks]$ cat extraVarFile.yml
+---
+extra_vars_key: extra vars value
+[ujam@yamlserver playbooks]$
+##################################################################################
+
+[ujam@yamlserver playbooks]$
+[ujam@yamlserver playbooks]$ cat 1_9_extravar.yml
+# when we want to pass an external file as an argument to read the value of the variables we need to use @
+
+---
+- hosts: ansiblelocalhost
+  gather_facts: false
+
+  tasks:
+    - name: test extra vars
+      debug:
+        msg: "{{ extra_vars_key }}"
+
+[ujam@yamlserver playbooks]$	
+		
+##################################################################################
+How to execute 
+------------------
+ansible-playbook  -i  /home/ujam/ansibleDir/hosts.yaml  -e @extraVarFile.yml 1_9_extravar.yml
+
+			or		we can pass directly the key value pair with -e option
+			
+ansible-playbook  -i  /home/ujam/ansibleDir/hosts.yaml  -e '{extra_vars_key: extra vars value}'  1_9_extravar.yml
+		
+		
+		
+	
