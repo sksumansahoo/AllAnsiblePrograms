@@ -1,18 +1,13 @@
 
-==> /home/ujam/hosts <==
-[jenkinsmaster]
-192.168.33.95
-
-[yamlnodes]
-192.168.33.97
-192.168.33.99
-
-[linux:children]
-jenkinsmaster
-yamlnodes
-=================================================
-
 ==> /home/ujam/hosts.yml <==
+---
+control:
+   hosts:
+      192.168.33.60:
+jenkinsmaster:
+   hosts:
+      192.168.33.95:
+yamlnodes:
    hosts:
       192.168.33.97:
       192.168.33.99:
@@ -23,6 +18,25 @@ linux:
    children:
       jenkinsmaster:
       yamlnodes:
+
+
+=================================================
+
+==> /home/ujam/hosts <==
+
+[control]
+192.168.33.60
+
+[jenkinsmaster]
+192.168.33.95
+
+[yamlnodes]
+192.168.33.97
+192.168.33.99
+
+[linux:children]
+jenkinsmaster
+yamlnodes
 
 ==================================================
 
