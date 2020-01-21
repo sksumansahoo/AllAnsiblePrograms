@@ -434,5 +434,27 @@ how to get the tag from the remote?
 How to delete all tags form remote?
 	git push origin --delete $(git tag -l)
 
+
+Difference btween merging and rebase?
+	In case of merging the feature commit message will not show. so it will not give clear idea
+about commit changes.
+	In case of rebase the feature commit message will show. so it will give clear idea about 
+commit changes.
+                           ________F1_______F2________F3___
+       ------M1-------M2---|
+                           |_________M1________M2_________
+
+how to merge branch without merge conflict?
+	inside the mater branch
+		git merge --squash  branch_name  # --squash oprion use to aviod merge conflict
+		git commit -m "merging the branch"
+
+how to rebase the branch?
+	inside the your branch 
+	    git rebase master
+	inside the master branch
+		git rebase beanch_name
+
 	
 	
+
