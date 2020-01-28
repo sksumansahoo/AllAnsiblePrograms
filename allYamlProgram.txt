@@ -2571,4 +2571,18 @@ echo [current_date]
 echo current_date=`date`
 =======================================
 
+./1_4_listGitBranch.yml
+===================================================
+---
+- hosts: control
+
+  tasks:
+    - name: get the baranch names
+      shell: |
+             git ls-remote -t -h https://github.com/sksumanta/devops_SampleWebApp.git
+      register: output
+    - debug: var=output.stdout
+========================================
+
+
 
