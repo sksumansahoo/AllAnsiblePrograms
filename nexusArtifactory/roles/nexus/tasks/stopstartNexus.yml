@@ -1,0 +1,22 @@
+---
+
+  - name: copy the start script template
+    template:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      mode: 0777
+      backup: yes
+      owner: ujam
+      group: ujam
+    with_items:
+      - {src: '/home/ujam/ansibleDir/playbooks/artifactory/roles/nexus/templates/nexus_run' , dest: '/opt/'}
+      - {src: '/home/ujam/ansibleDir/playbooks/artifactory/roles/nexus/templates/nexus_stop' , dest: '/opt/'}
+
+  - name: start nexus 
+#    shell:  /opt/nexus_run &
+    command: nohup /opt/nexus_run
+    tags: start_nexus
+
+  - name: stop nexus
+    command:  nohup /opt/nexus_stop 
+    tags: stop_nexus    

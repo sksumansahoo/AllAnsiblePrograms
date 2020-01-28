@@ -1,44 +1,761 @@
-
-==> /home/ujam/hosts.yml <==
----
-control:
-   hosts:
-      192.168.33.60:
-jenkinsmaster:
-   hosts:
-      192.168.33.95:
-yamlnodes:
-   hosts:
-      192.168.33.97:
-      192.168.33.99:
-   vars:
-      ansible_become: true
-      ansible_become_pass: suman345
-linux:
-   children:
-      jenkinsmaster:
-      yamlnodes:
-
-
-=================================================
-
-==> /home/ujam/hosts <==
-
-[control]
-192.168.33.60
-
-[jenkinsmaster]
-192.168.33.95
-
-[yamlnodes]
-192.168.33.97
-192.168.33.99
-
-[linux:children]
-jenkinsmaster
-yamlnodes
-
+./nexusArtifactory/inventory/group_vars/yamlnodes.yml
 ==================================================
+##############################
+# Common configuration
+# Bydefault ansible-playbook command look group_vars/ and host_vars/ directory in the current working directory
+# But other Ansible commands like ansible, ansible-console, etc look group_vars/ and host_vars/ directory 
+# inside the inventory directory.  
+##############################
+---
+
+#tomcat:
+#  software:
+#    source: https://archive.apache.org/dist/tomcat/tomcat-9/v9.0.11/bin/apache-tomcat-9.0.11.tar.gz
+#    certs:
+#      validate: false
+
+nexus:
+  software:
+    source: https://download.sonatype.com/nexus/3/latest-unix.tar.gz
+    certs:
+      validate: false
+=======================================
+
+
+./nexusArtifactory/inventory/hosts
+==================================================
+---
+#   - Top level entries are assumed to be groups, start with 'all' to have a full hierarchy
+#   - Hosts must be specified under a group's   hosts:
+#   - Anything defined under a host is assumed to be a var
+#   - A hostname/IP can be a member of multiple groups
+
+all:
+  children:
+    control:
+      hosts:
+        192.168.33.60:
+    jenkinsmaster:
+      hosts:
+        192.168.33.95:
+    yamlnodes:
+      hosts:
+        192.168.33.97:
+          ansible_become: true
+          ansible_become_pass: suman345
+        192.168.33.99:
+          ansible_become: true
+          ansible_become_pass: suman345
+    linux:
+      children:
+        jenkinsmaster:
+        yamlnodes:
+=======================================
+
+
+./nexusArtifactory/roles/nexus/tasks/installnexus.yml
+==================================================
+---
+  - name: Download nexus and create the nexus installation folder if nexus directory not present
+    block:
+      - name: check the nexus directory exist or not
+        stat:
+          path: /opt/nexus_3
+        register: dirStat
+
+      - name: Create the nexus folder if nexus directory not present
+        file:
+          path: /opt/nexus_3
+          recurse: yes
+          state: directory
+        when: dirStat.stat.exists ==  false
+
+  - name: Extract nexus from archive if nexus is not extracted
+    block:
+      - name: check nexus is extracted or not
+        shell: "ls -1 | wc -l"
+        args:
+          chdir: /opt/nexus_3/
+        register: counts
+      - debug: var=counts
+
+      - name: Download nexus using get_url module
+        get_url:
+          url: "{{ nexus.software.source }}"
+          dest: /tmp/
+        when: counts.stdout | int == 0
+
+      - name: Extract nexus in nexus_3 directory
+        unarchive:
+          src: /tmp/nexus-*.tar
+          remote_src: yes
+          dest: /opt/nexus_3
+        when: counts.stdout | int == 0
+
+  - name: enable firewall and iptable for nexus
+    block:
+      - name: enable  iptable for nexus
+        vars: 
+          enable_nexus: yes
+        iptables:
+          chain: INPUT
+          protocol: udp
+          destination_port: "8081"
+          jump: ACCEPT
+        when: enable_nexus
+
+      - name: enable port in firewall
+        firewalld:
+          # zone: dmz
+          port: 8081/tcp
+          permanent: yes
+          state: enabled
+=======================================
+
+
+./nexusArtifactory/roles/nexus/tasks/main.yml
+==================================================
+---                
+
+  - name: check nexus is presnet or not
+    stat:
+      path: /opt/nexus/bin/
+    register: dirStat
+  - debug: var=dirStat
+
+  - name: install nexus if not present
+    include_tasks: installnexus.yml
+    when: dirStat.stat.exists == false
+
+  - include_tasks: stopstartNexus.yml
+=======================================
+
+
+./nexusArtifactory/roles/nexus/tasks/stopstartNexus.yml
+==================================================
+---
+
+  - name: copy the start script template
+    template:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      mode: 0777
+      backup: yes
+      owner: ujam
+      group: ujam
+    with_items:
+      - {src: '/home/ujam/ansibleDir/playbooks/artifactory/roles/nexus/templates/nexus_run' , dest: '/opt/'}
+      - {src: '/home/ujam/ansibleDir/playbooks/artifactory/roles/nexus/templates/nexus_stop' , dest: '/opt/'}
+
+  - name: start nexus 
+#    shell:  /opt/nexus_run &
+    command: nohup /opt/nexus_run
+    tags: start_nexus
+
+  - name: stop nexus
+    command:  nohup /opt/nexus_stop 
+    tags: stop_nexus    
+=======================================
+
+
+./nexusArtifactory/roles/nexus/templates/nexus_run
+==================================================
+cd /opt/nexus/
+rm -f hs*log 
+cd /opt/nexus/bin
+./nexus run	 > /opt/nexus/nexusRun.log 2>&1
+=======================================
+
+
+./nexusArtifactory/roles/nexus/templates/nexus_stop
+==================================================
+cd /opt/nexus/bin
+./nexus stop	 > /opt/nexus/nexusStop.log 2>&1
+=======================================
+
+
+./nexusArtifactory/nexus_setup.yml
+==================================================
+---
+
+- hosts: 192.168.33.99
+
+  gather_facts: true
+  remote_user: ujam
+  become: true
+  become_method: sudo
+
+  roles:
+    - roles/nexus
+    
+=======================================
+
+
+./tomcat/inventory/group_vars/yamlnodes.yml
+==================================================
+##############################
+# Common configuration
+# Bydefault ansible-playbook command look group_vars/ and host_vars/ directory in the current working directory
+# But other Ansible commands like ansible, ansible-console, etc look group_vars/ and host_vars/ directory 
+# inside the inventory directory.  
+##############################
+---
+
+tomcat:
+  software:
+    source: https://archive.apache.org/dist/tomcat/tomcat-9/v9.0.11/bin/apache-tomcat-9.0.11.tar.gz
+    certs:
+      validate: false
+=======================================
+
+
+./tomcat/inventory/hosts
+==================================================
+---
+#   - Top level entries are assumed to be groups, start with 'all' to have a full hierarchy
+#   - Hosts must be specified under a group's   hosts:
+#   - Anything defined under a host is assumed to be a var
+#   - A hostname/IP can be a member of multiple groups
+
+all:
+  children:
+    control:
+      hosts:
+        192.168.33.60:
+    jenkinsmaster:
+      hosts:
+        192.168.33.95:
+    yamlnodes:
+      hosts:
+        192.168.33.97:
+          ansible_become: true
+          ansible_become_pass: suman345
+        192.168.33.99:
+          ansible_become: true
+          ansible_become_pass: suman345
+    linux:
+      children:
+        jenkinsmaster:
+        yamlnodes:
+=======================================
+
+
+./tomcat/roles/tasks/installTomcat.yml
+==================================================
+---
+
+  - name: Tomcat URL info
+    debug:         # value of tomcat.software.source comes from group_var/yamlnodes.yml
+      msg:  "Download tomcat from {{ tomcat.software.source }}"
+
+  - name: Download tomcat using get_url module
+    get_url: 
+      url: "{{ tomcat.software.source }}"
+      dest: /tmp/
+
+################### we can use wget in command module ################
+#    - name: Download tomcat                                         #
+#      command: " wget {{ tomcat.software.source }}"                 #
+#      args:                                                         #
+#        chdir: /tmp/                                                #
+######################################################################
+
+  - name: check tomcat directory if not exist create the directory
+    block:
+      - name: check tomcat directory
+        stat:
+          path: /opt/apache-tomcat
+        register: dirStat
+     #- debug: var=dirStat 
+
+      - name: create tomcat directory if not exist
+        file:
+          path: /opt/apache-tomcat
+          recurse: true
+          state: directory
+        when: dirStat.stat.exists == false
+
+  - name: Extract tomcat from archive if tomcat is not extracted
+    block:
+      - name: check tomcat is extracted or not
+        shell: " ls -1 | wc  -l"
+        args:
+          chdir: /opt/apache-tomcat/
+        register: counts
+      - debug: var=counts
+
+      - name: extract tomcat 
+        unarchive:
+          src: /tmp/apache-tomcat-9.0.11.tar.gz
+          remote_src: yes    #   yes    indicate the archived file is already on the remote system 
+          dest: /opt/apache-tomcat
+        when: counts.stdout | int == 0
+
+  - name: Ansible template with_items
+    template:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      mode: 0777
+      backup: yes
+      owner: root
+      group: root
+    with_items:
+      - {src: '/home/ujam/ansibleDir/playbooks/tomcat/roles/templates/context.xml' , dest: '/opt/apache-tomcat/apache-tomcat-9.0.11/webapps/manager/META-INF/'}
+      - {src: '/home/ujam/ansibleDir/playbooks/tomcat/roles/templates/tomcat-users.xml' , dest: '/opt/apache-tomcat/apache-tomcat-9.0.11/conf/'}
+      - {src: '/home/ujam/ansibleDir/playbooks/tomcat/roles/templates/host-manager.xml' , dest: '/opt/apache-tomcat/apache-tomcat-9.0.11/conf/Catalina/localhost/'}
+      - {src: '/home/ujam/ansibleDir/playbooks/tomcat/roles/templates/manager.xml' , dest: '/opt/apache-tomcat/apache-tomcat-9.0.11/conf/Catalina/localhost/'}
+ 
+  - name: enable firewall and iptable for http   
+    block:
+      - name: enable  iptable for http
+        vars:
+          enable_http: yes
+        iptables:
+          chain: INPUT
+          protocol: udp
+          destination_port: "8080"
+          jump: ACCEPT
+        when: enable_http
+
+      - name: Enable port in firewall
+        firewalld:
+         # zone: dmz
+         # service: http
+          port: 8080/tcp
+          permanent: yes
+          state: enabled     
+=======================================
+
+
+./tomcat/roles/tasks/main.yml
+==================================================
+---
+
+  - name: check tomcat is present or not
+    stat:
+      path: /opt/apache-tomcat/apache-tomcat-9.0.11/bin/
+    register: dirStat
+  - debug: var=dirStat
+
+  - name: install tomcat if not present
+    include_tasks: installTomcat.yml
+    when: dirStat.stat.exists == false
+
+  - name: Change mode for startup and shutdown script
+    file:
+      path: "{{ item }}"
+      mode: 0777
+      owner: root
+      group: root
+    with_items:
+      - '/opt/apache-tomcat/apache-tomcat-9.0.11/bin/shutdown.sh'
+      - '/opt/apache-tomcat/apache-tomcat-9.0.11/bin/startup.sh'
+      - '/opt/apache-tomcat/apache-tomcat-9.0.11/bin/catalina.sh'
+    when: dirStat.stat.exists == true
+
+  - include_tasks: stopStartTomcat.yml
+
+=======================================
+
+
+./tomcat/roles/tasks/stopStartTomcat.yml
+==================================================
+---
+
+  - name: stop tomcat
+    command: nohup /opt/apache-tomcat/apache-tomcat-9.0.11/bin/shutdown.sh
+    tags: shutdown_tomcat
+
+  - name: start tomcat
+    command: nohup /opt/apache-tomcat/apache-tomcat-9.0.11/bin/startup.sh
+    tags: startup_tomcat
+=======================================
+
+
+./tomcat/roles/templates/context.xml
+==================================================
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<Context antiResourceLocking="false" privileged="true" >
+
+<!--
+  <Valve className="org.apache.catalina.valves.RemoteAddrValve"
+         allow="127\.\d+\.\d+\.\d+|::1|0:0:0:0:0:0:0:1" />
+-->
+
+  <Manager sessionAttributeValueClassNameFilter="java\.lang\.(?:Boolean|Integer|Long|Number|String)|org\.apache\.catalina\.filters\.CsrfPreventionFilter\$LruCache(?:\$1)?|java\.util\.(?:Linked)?HashMap"/>
+
+</Context>
+=======================================
+
+
+./tomcat/roles/templates/context.xml.old
+==================================================
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<!-- The contents of this file will be loaded for each web application -->
+<Context>
+
+    <!-- Default set of monitored resources. If one of these changes, the    -->
+    <!-- web application will be reloaded.                                   -->
+    <WatchedResource>WEB-INF/web.xml</WatchedResource>
+    <WatchedResource>WEB-INF/tomcat-web.xml</WatchedResource>
+    <WatchedResource>${catalina.base}/conf/web.xml</WatchedResource>
+
+    <!-- Uncomment this to disable session persistence across Tomcat restarts -->
+    <!--
+    <Manager pathname="" />
+    -->
+</Context>
+=======================================
+
+
+./tomcat/roles/templates/host-manager.xml
+==================================================
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Context privileged="true" antiResourceLocking="false" docBase="${catalina.home}/webapps/host-manager">
+    <Valve className="org.apache.catalina.valves.RemoteAddrValve" allow="^.*$" />
+</Context>
+=======================================
+
+
+./tomcat/roles/templates/manager.xml
+==================================================
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Context privileged="true" antiResourceLocking="false" docBase="${catalina.home}/webapps/manager">
+    <Valve className="org.apache.catalina.valves.RemoteAddrValve" allow="^.*$" />
+</Context>
+=======================================
+
+
+./tomcat/roles/templates/tomcat-users.xml
+==================================================
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<tomcat-users xmlns="http://tomcat.apache.org/xml"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://tomcat.apache.org/xml tomcat-users.xsd"
+              version="1.0">
+<!--
+  NOTE:  By default, no user is included in the "manager-gui" role required
+  to operate the "/manager/html" web application.  If you wish to use this app,
+  you must define such a user - the username and password are arbitrary. It is
+  strongly recommended that you do NOT use one of the users in the commented out
+  section below since they are intended for use with the examples web
+  application.
+-->
+<!--
+  NOTE:  The sample user and role entries below are intended for use with the
+  examples web application. They are wrapped in a comment and thus are ignored
+  when reading this file. If you wish to configure these users for use with the
+  examples web application, do not forget to remove the <!.. ..> that surrounds
+  them. You will also need to set the passwords to something appropriate.
+-->
+<!--
+  <role rolename="tomcat"/>
+  <role rolename="role1"/>
+  <user username="tomcat" password="<must-be-changed>" roles="tomcat"/>
+  <user username="both" password="<must-be-changed>" roles="tomcat,role1"/>
+  <user username="role1" password="<must-be-changed>" roles="role1"/>
+-->
+
+  <role rolename="tomcat"/>
+  <role rolename="admin-gui"/>
+  <role rolename="admin-script"/>
+  <role rolename="manager-gui"/>
+  <role rolename="manager-status"/>
+  <role rolename="manager-script"/>
+  <role rolename="manager-jmx"/>
+  <user username="sksumanta" password="suman345" roles="tomcat,admin-gui,manager-gui,admin-script,manager-script,manager-status,manager-jmx"/>
+
+
+</tomcat-users>
+=======================================
+
+
+./tomcat/tomcat_setup.yml
+==================================================
+---
+- hosts: 192.168.33.99 
+
+  gather_facts: true
+  remote_user: ujam
+  become: true
+  become_method: sudo
+
+  roles:
+#    the below line 'roles' is a directory present in tomcat directory
+    - roles
+
+
+# To execute use    ansible-playbook -i ./inventory/hosts   tomcat_setup.yml   --skip-tags "shutdown_tomcat" 
+=======================================
+
+
+./10_1_sending_mail.yml
+==================================================
+---
+- hosts: control
+
+  tasks:
+    - name: send a mail to the gmail account
+      mail:
+        host: smtp.gmail.com
+        port: 587
+        secure: starttls
+        charset: utf-8
+        sender: sumanta.sahoo98@gmail.com
+        username: sumanta.sahoo98@gmail.com
+        password: SaraswatiSahoo
+        to: sumanta sahoo <sumanta.sahoo98@gmail.com>
+        subject: ansible report
+        body: System {{ ansible_hostname }} has been successfully provisioned.
+=======================================
+
+
+./11_1_customModule.sh
+==================================================
+# The custom module can be writen in any scripting language (like  unix shell scripting or python )  which can return JSON output
+# git clone https://github.com/ansible/ansible.git
+# cd /home/ujam/getansibleCostom/ansible/hacking
+#  ./test-module -m /home/ujam/ansibleDir/playbooks/11_1_customModule.sh 
+
+# Url for custom module " https://docs.ansible.com/ansible/latest/dev_guide/developing_modules_general.html " in python 
+
+# 
+#!/bin/bash
+
+ping -c 1 192.168.33.95 > /dev/null 2>/dev/null
+
+if [ $? == 0 ]
+   then
+      echo "{\"changed\": true , \"rc\": 0 }"
+else
+   echo "{\"failed\": true , \"msg\": \"failed to ping\", \"rc\":2}"
+fi
+=======================================
+
+
+./12_0_taskFile.yml
+==================================================
+---
+- name: check the directory is exist or not
+  stat:  
+    path: /home/ujam/workInsideTheDir/allYamlPrograms
+  register: dirStat
+
+- name: result  
+  debug:
+    msg: >
+         {% if dirStat.stat.exists == true -%}
+            directory is exsit 
+         {% else -%}
+            directory is not exist
+         {% endif %}
+=======================================
+
+
+./12_0_yaml2ImportOrInclude.yml
+==================================================
+---
+- hosts:  192.168.33.97
+
+  tasks:
+    - name: check the directory is exist or not
+      stat:  
+        path: /home/ujam/workInsideTheDir/allYamlPrograms
+      register: dirStat
+
+    - name: result  
+      debug:
+        msg: >
+            {% if dirStat.stat.exists == true -%}
+               directory is exsit 
+            {% else -%}
+               directory is not exist
+            {% endif %}
+=======================================
+
+
+./12_1_include_import.yml
+==================================================
+# In Ansible we can reuse the content with include and import and roles 
+# All import* statements are pre-processed at the time playbooks are parsed.
+# All include* statements are processed as they encountered during the execution of the playbook.
+# So import (import_playbook, import_tasks, etc.) is static. 
+#    include (include_tasks, include_role, etc.) is dynamic.
+# "include: {{ codename }}.yml " 
+
+
+# In the below example include a playbook 
+
+---
+- include: 9_1_blocks.yml
+
+=======================================
+
+
+./12_2_include_playbook.yml
+==================================================
+---
+
+- include: 9_1_blocks.yml
+
+- hosts: 192.168.33.97
+
+  tasks:
+    - name: count no of file in the directory
+      shell: |
+             ls -1 | wc -l
+      args:
+        chdir: /home/ujam/workInsideTheDir/allYamlPrograms
+      register: theCount
+    - debug:         # var=theCount
+        msg: "cout is {{ theCount.stdout }}"
+=======================================
+
+
+./12_3_include_playbook_in_tasks.yml
+==================================================
+---
+
+- hosts: 192.168.33.97
+
+  tasks:
+    - name: Include playbook in tasks
+      debug:
+        msg: include task file 12_0_taskFile.yml in the playbook tasks
+
+#    include_tasks is dynamic
+    - include_tasks: 12_0_taskFile.yml   # include a task file inside the playbook
+
+#    include is static
+#    - include: 12_0_taskFile.yml
+
+    - name: count no of file in the directory
+      shell: |
+             ls -1 | wc -l
+      args:
+        chdir: /home/ujam/workInsideTheDir/allYamlPrograms
+      register: theCount
+    - debug:         # var=theCount
+        msg: "cout is {{ theCount.stdout }}"
+=======================================
+
+
+./12_4_include_import.yml
+==================================================
+# inlude is static 
+# include_tasks is dynamic
+# import_tasks is static
+
+=======================================
+
+
+./13_0_roles.yml
+==================================================
+# Roles  is a logical structure means Roles is simply a directory structure. 
+# Using role it is easy to share and manage playbooks , templates , variables etc
+# Role can be developed independently in parallel by different entities and work well with version control 
+# Role can have dependencies on other roles allowing automatic inclusion.
+
+
+# In Roles directory structure the top level dirctory is the name of the role
+
+# Example of a 'Roles' directory structure
+
+#jms_test       # this is the name of the role
+#|----defaults  # this is the directory which holds the default variables
+#|      |____ main.yml
+#|----files     # If you want to use any script in the module then you can keep it in 'files' dirctory
+#|      |____ abc.sh
+#|----handlers  # It holds the handler content
+#|      |____ main.yml
+#|----meta      # this directory holds the setting for the roles and dependncy 
+#|      |____ main.yml
+#|----README.md # If you want to publish (to github/ version control) the role then we need this file 
+#|----tasks     # We include all the tasks 
+#|      |____ main.yml
+#|----templates # All jinja2 templates will be in this directory
+#|----tests     # This folder is useful for the unit test
+#|      |____ inventory
+#|      |____ test.yml
+#|----vars      # This folder holdes the role var
+#      |____ main.yml
+
+# To create the above directory structure you can use " ansible-galaxy init  directory_name "
+
+# As Role is a logical dirctory structure so it is not mandetory to follow same directory structure as above
+# As per our requirement we can create the dirctories and use it in the program.
+
+# For example as below
+
+# tomcat
+#  |___inventory
+#  |     |____group_vars
+#  |     |      |___yamlnodes.yml
+#  |     |____hosts
+#  |___roles  # inside roles directory we can create a directory 'theTomcat' to keep its tasks and template
+#  |     |____tasks
+#  |     |      |___installTomcat.yml
+#  |     |      |___main.yml
+#  |     |      |___stopStartTomcat.yml
+#  |     |____templates
+#  |            |___context.xml
+#  |            |___context.xml.old
+#  |            |___host-manager.xml
+#  |            |___manager.xml
+#  |            |___tomcat-users.xml
+#  |___tomcat_setup.yml
+#
+=======================================
 
 
 ./1_0_ExHow2createTask.yml
@@ -73,10 +790,12 @@ yamlnodes
 #  Now check the difference in /tmp/testDemo and /tmp/testDemo2  we will see no new line in testDemo2 file
 =======================================
 
+
 ./1_0_demofile
 ==================================================
 I am reading ansible
 =======================================
+
 
 ./1_1_variableDemo.yml
 ==================================================
@@ -104,6 +823,7 @@ I am reading ansible
 
 =======================================
 
+
 ./1_2_handlerDemo.yml
 ==================================================
 # The handlers execute at the end and it holds the result of last task
@@ -129,6 +849,7 @@ I am reading ansible
         msg: The message is added
 
 =======================================
+
 
 ./1_3_variableTaskHandler.yml
 ==================================================
@@ -166,6 +887,7 @@ I am reading ansible
         msg: the wellcome message has been copied
 =======================================
 
+
 ./2_0_variable.yml
 ==================================================
 ---
@@ -181,6 +903,7 @@ I am reading ansible
         msg: "{{ exKey }}"
 =======================================
 
+
 ./2_10_extraVar.json
 ==================================================
 {
@@ -188,11 +911,13 @@ I am reading ansible
 }
 =======================================
 
+
 ./2_10_extraVar.yml
 ==================================================
 ---
 extraVarKey: This is th value of extra variable
 =======================================
+
 
 ./2_10_variable_extra_var.yml
 ==================================================
@@ -220,6 +945,7 @@ extraVarKey: This is th value of extra variable
  
 =======================================
 
+
 ./2_1_variableDict.yml
 ==================================================
 ---
@@ -246,6 +972,7 @@ extraVarKey: This is th value of extra variable
 
 =======================================
 
+
 ./2_2_variableDict.yml
 ==================================================
 ---
@@ -270,6 +997,7 @@ extraVarKey: This is th value of extra variable
         msg: "{{ thedict['dictkey2'] }}"
 
 =======================================
+
 
 ./2_3_variablelist.yml
 ==================================================
@@ -298,6 +1026,7 @@ extraVarKey: This is th value of extra variable
 
 =======================================
 
+
 ./2_4_variablelist.yml
 ==================================================
 ---
@@ -323,6 +1052,7 @@ extraVarKey: This is th value of extra variable
 
 =======================================
 
+
 ./2_5_exterVarFile.yml
 ==================================================
 ---
@@ -344,6 +1074,7 @@ extInlineList:
   [inlineLitem1 ,inlineLitem2, inlineLitem3]
 
 =======================================
+
 
 ./2_5_variableFromFile.yml
 ==================================================
@@ -411,6 +1142,7 @@ extInlineList:
    
 =======================================
 
+
 ./2_6_variablePromptUserInput.yml
 ==================================================
 # vars_prompt  module use to accept user input 
@@ -439,6 +1171,7 @@ extInlineList:
       debug:
         msg: "password is {{ passWord }}"
 =======================================
+
 
 ./2_7_grouvars_hostvars
 ==================================================
@@ -475,6 +1208,7 @@ ansible_become: true
 ansible_become_pass: suman345
 =======================================
 
+
 ./2_7_variableHostvars.yml
 ==================================================
 
@@ -492,6 +1226,7 @@ ansible_become_pass: suman345
         msg: "{{ hostvars[ansible_hostname]['ansible_port'] | default('22') }}"
 =======================================
 
+
 ./2_8_variableGroupvars.yml
 ==================================================
 # groupvars can access directly 
@@ -507,6 +1242,7 @@ ansible_become_pass: suman345
       debug:
         msg: "{{ ansible_hostname }}" 
 =======================================
+
 
 ./2_9_variableGroupvars.yml
 ==================================================
@@ -524,6 +1260,7 @@ ansible_become_pass: suman345
 
 =======================================
 
+
 ./3_1_facts.yml
 ==================================================
 #when any module return a dictionary "ansible_facts" then that output will be added 
@@ -538,6 +1275,7 @@ ansible_become_pass: suman345
       debug:
         msg: "{{ ansible_default_ipv4.address }}"
 =======================================
+
 
 ./3_2_customFacts.yml
 ==================================================
@@ -576,6 +1314,7 @@ ansible_become_pass: suman345
       debug:
         msg: "{{ hostvars[ansible_hostname].ansible_local.getcustomfacts2.current_date.current_date }}"
 =======================================
+
 
 ./3_3_customFacts.yml
 ==================================================
@@ -636,6 +1375,7 @@ ansible_become_pass: suman345
         msg: "{{ hostvars[ansible_hostname].ansible_local.getcustomfacts2.current_date.current_date }}"
 =======================================
 
+
 ./4_1_jinja2_if_statement.yml
 ==================================================
 ---
@@ -680,6 +1420,7 @@ ansible_become_pass: suman345
 
 =======================================
 
+
 ./4_2_jinja2_for_loop.yml
 ==================================================
 
@@ -697,6 +1438,7 @@ ansible_become_pass: suman345
              {% endfor %}
 
 =======================================
+
 
 ./4_3_jinja2_for_loop_range.yml
 ==================================================
@@ -751,6 +1493,7 @@ ansible_become_pass: suman345
     
 =======================================
 
+
 ./4_4_jinja2_default_filter.yml
 ==================================================
 ---
@@ -787,6 +1530,7 @@ ansible_become_pass: suman345
 
             {{ "https://docs.ansible.com/ansible/latest/user_guide/playbooks_filters.html" | urlsplit('hostname') }}
 =======================================
+
 
 ./4_5_jinja2Template.j2
 ==================================================
@@ -879,6 +1623,7 @@ value is = {{ i }}
 {{ "https://docs.ansible.com/ansible/latest/user_guide/playbooks_filters.html" | urlsplit('hostname') }}
 =======================================
 
+
 ./4_5_jinja2_template_use.yml
 ==================================================
 ---
@@ -893,6 +1638,7 @@ value is = {{ i }}
         trim_blocks: true
 
 =======================================
+
 
 ./5_1_register_N_get_register_Output.yml
 ==================================================
@@ -914,6 +1660,7 @@ value is = {{ i }}
         var: result.stdout
 
 =======================================
+
 
 ./5_2_when_expression.yml
 ==================================================
@@ -949,6 +1696,7 @@ value is = {{ i }}
         var: result2
 =======================================
 
+
 ./5_3_InstallPatchUsingWhenCondition.yml
 ==================================================
 ---
@@ -971,6 +1719,7 @@ value is = {{ i }}
       when: result2.changed 
 #      when: result2 is changed           
 =======================================
+
 
 ./6_1_loop_withItems.yml
 ==================================================
@@ -999,6 +1748,7 @@ value is = {{ i }}
         - akhilesh
       tags:  delete_user
 =======================================
+
 
 ./6_2_loop_withDict.yml
 ==================================================
@@ -1034,6 +1784,7 @@ value is = {{ i }}
         - akhilesh
       tags:  delete_user
 =======================================
+
 
 ./6_3_loop_withSubelements.yml
 ==================================================
@@ -1091,6 +1842,7 @@ value is = {{ i }}
       tags:  delete_user
 =======================================
 
+
 ./6_4_loop_withNested.yml
 ==================================================
 # Incase of with_nested loop for each outer element all the inner element will be executed
@@ -1139,6 +1891,7 @@ value is = {{ i }}
         - akhilesh
       tags:  delete_user
 =======================================
+
 
 ./6_5_loop_withTogether.yml
 ==================================================
@@ -1190,6 +1943,7 @@ value is = {{ i }}
       tags:  delete_user
 =======================================
 
+
 ./6_6_loop_withFile.yml
 ==================================================
 # the with_file loop copy the file content to other file 
@@ -1218,6 +1972,7 @@ value is = {{ i }}
 
 # once the script executed successfully we can validate it by " ssh smita@192.168.33.97 "
 =======================================
+
 
 ./6_7_loop_withSequence.yml
 ==================================================
@@ -1262,6 +2017,7 @@ value is = {{ i }}
       with_sequence: count=3 format=/home/smita/countDir_%x
 =======================================
 
+
 ./6_8_loop_withRandomChoice.yml
 ==================================================
 # with_random_choice loop taked as list of arguments and pick a random element from the list
@@ -1291,6 +2047,7 @@ value is = {{ i }}
         - games
 =======================================
 
+
 ./6_9_loop_untilRetries.yml
 ==================================================
 # loop using until_retries
@@ -1306,11 +2063,13 @@ value is = {{ i }}
       until: output.stdout.find("7") != -1
 =======================================
 
+
 ./6_9_random.sh
 ==================================================
 #!/bin/bash
 echo $((1 + RANDOM % 10))
 =======================================
+
 
 ./7_1_parallel_N_asyncronous.yml
 ==================================================
@@ -1342,6 +2101,7 @@ echo $((1 + RANDOM % 10))
       poll: 1
 =======================================
 
+
 ./7_2_parallel_N_asyncronous.yml
 ==================================================
 # In ansible tasks executed in linear form means each one task execute for  all the hosts specified in
@@ -1371,6 +2131,7 @@ echo $((1 + RANDOM % 10))
       async: 15
       poll: 0
 =======================================
+
 
 ./7_3_parallel_N_asyncronous_Register_output.yml
 ==================================================
@@ -1414,6 +2175,7 @@ echo $((1 + RANDOM % 10))
 # to know the status / more  information about the task/job we can use the ansible_jobid of asynchronous task 
 
 =======================================
+
 
 ./7_4_parallel_N_asyncronous_getJobid.yml
 ==================================================
@@ -1474,6 +2236,7 @@ echo $((1 + RANDOM % 10))
         var: thejobIds
 
 =======================================
+
 
 ./7_5_parallel_N_asyncronous_wait2jobComplete.yml
 ==================================================
@@ -1546,6 +2309,7 @@ echo $((1 + RANDOM % 10))
       retries: 35
 =======================================
 
+
 ./7_6_parallel_N_asyncronous_fork_serial.yml
 ==================================================
 # In ansible tasks executed in linear form means each one task execute for  all the hosts specified in
@@ -1578,6 +2342,7 @@ echo $((1 + RANDOM % 10))
       command: /bin/sleep 10
 =======================================
 
+
 ./7_7_parallel_N_asyncronous_strategy.yml
 ==================================================
 
@@ -1598,6 +2363,40 @@ echo $((1 + RANDOM % 10))
     - name: task 3
       command: /bin/sleep 10
 =======================================
+
+
+./7_8_reboot_servers_using_asynchronous.yml
+==================================================
+---
+- hosts: linux
+
+  tasks:
+    - name: check the uptime prior to reboot
+      shell: uptime
+      register: preRebootUptime
+    - debug: var=preRebootUptime.stdout
+
+    - name: reboot the nodes without polling (poll=0)
+      shell: reboot
+      async: 20
+      poll: 0
+      become: true
+
+    - name: wait for the host to finish reboot
+      wait_for:
+        port: "{{ ansible_port|default(ansible_ssh_port)|default(22) }}"
+        host: "{{ ansible_ssh_host|default(ansible_host)|default(inventory_hostname) }}"
+        search_regex: OpenSSH
+        delay: 20  # do not check for at least 20 sec
+      connection: local
+      become: false
+
+    - name: check the uptime after reboot
+      shell: uptime
+      register: postRebootUptime
+    - debug: var=postRebootUptime.stdout
+=======================================
+
 
 ./8_1_delegate_task.yml
 ==================================================
@@ -1642,6 +2441,7 @@ echo $((1 + RANDOM % 10))
       run_once: true
 =======================================
 
+
 ./9_1_blocks.yml
 ==================================================
 # blocks allow for logical grouping of tasks 
@@ -1675,368 +2475,6 @@ echo $((1 + RANDOM % 10))
 #######################################################################
 =======================================
 
-./deletefactdirectory
-==================================================
----
-- hosts: linux
-  gather_facts: false
-  become: true
-  tasks:
-    - name: delete directory
-      file:
-        path: /etc/ansible/facts.d
-        state: absent
-=======================================
-
-./getcustomfacts1.fact
-==================================================
-#!/bin/bash
-echo {\""current_date\"" : \""`date`\""}
-=======================================
-
-./getcustomfacts2.fact
-==================================================
-#!/bin/bash
-echo [current_date]
-echo current_date=`date`
-=======================================
-
-./tomcat/inventory/group_vars/yamlnodes.yml
-==================================================
-##############################
-# Common configuration
-# Bydefault ansible-playbook command look group_vars/ and host_vars/ directory in the current working directory
-# But other Ansible commands like ansible, ansible-console, etc look group_vars/ and host_vars/ directory 
-# inside the inventory directory.  
-##############################
----
-
-tomcat:
-  software:
-    source: https://archive.apache.org/dist/tomcat/tomcat-9/v9.0.11/bin/apache-tomcat-9.0.11.tar.gz
-    certs:
-      validate: false
-=======================================
-
-./tomcat/inventory/hosts
-==================================================
----
-#   - Top level entries are assumed to be groups, start with 'all' to have a full hierarchy
-#   - Hosts must be specified under a group's   hosts:
-#   - Anything defined under a host is assumed to be a var
-#   - A hostname/IP can be a member of multiple groups
-
-all:
-  children:
-    control:
-      hosts:
-        192.168.33.60:
-    jenkinsmaster:
-      hosts:
-        192.168.33.95:
-    yamlnodes:
-      hosts:
-        192.168.33.97:
-          ansible_become: true
-          ansible_become_pass: suman345
-        192.168.33.99:
-          ansible_become: true
-          ansible_become_pass: suman345
-    linux:
-      children:
-        jenkinsmaster:
-        yamlnodes:
-=======================================
-
-./tomcat/roles/tasks/installTomcat.yml
-==================================================
----
-
-  - name: Tomcat URL info
-    debug:         # value of tomcat.software.source comes from group_var/yamlnodes.yml
-      msg:  "Download tomcat from {{ tomcat.software.source }}"
-
-  - name: Download tomcat using get_url module
-    get_url: 
-      url: "{{ tomcat.software.source }}"
-      dest: /tmp/
-
-################### we can use wget in command module ################
-#    - name: Download tomcat                                         #
-#      command: " wget {{ tomcat.software.source }}"                 #
-#      args:                                                         #
-#        chdir: /tmp/                                                #
-######################################################################
-
-  - name: check tomcat directory if not exist create the directory
-    block:
-      - name: check tomcat directory
-        stat:
-          path: /opt/apache-tomcat
-        register: dirStat
-     #- debug: var=dirStat 
-
-      - name: create tomcat directory if not exist
-        file:
-          path: /opt/apache-tomcat
-          recurse: true
-          state: directory
-        when: dirStat.stat.exists == false
-
-  - name: Extract tomcat from archive if tomcat is not extracted
-    block:
-      - name: check tomcat is extracted or not
-        shell: " ls -1 | wc  -l"
-        args:
-          chdir: /opt/apache-tomcat/
-        register: counts
-      - debug: var=counts
-
-      - name: extract tomcat 
-        unarchive:
-          src: /tmp/apache-tomcat-9.0.11.tar.gz
-          remote_src: yes    #   yes    indicate the archived file is already on the remote system 
-          dest: /opt/apache-tomcat
-        when: counts.stdout | int == 0
-
-  - name: Ansible template with_items
-    template:
-      src: "{{ item.src }}"
-      dest: "{{ item.dest }}"
-      mode: 0777
-      backup: yes
-      owner: root
-      group: root
-    with_items:
-      - {src: '/home/ujam/ansibleDir/playbooks/tomcat/roles/templates/context.xml' , dest: '/opt/apache-tomcat/apache-tomcat-9.0.11/webapps/manager/META-INF/'}
-      - {src: '/home/ujam/ansibleDir/playbooks/tomcat/roles/templates/tomcat-users.xml' , dest: '/opt/apache-tomcat/apache-tomcat-9.0.11/conf/'}
-      - {src: '/home/ujam/ansibleDir/playbooks/tomcat/roles/templates/host-manager.xml' , dest: '/opt/apache-tomcat/apache-tomcat-9.0.11/conf/Catalina/localhost/'}
-      - {src: '/home/ujam/ansibleDir/playbooks/tomcat/roles/templates/manager.xml' , dest: '/opt/apache-tomcat/apache-tomcat-9.0.11/conf/Catalina/localhost/'}
- 
-  - name: enable firewall and iptable for http   
-    block:
-      - name: enable  iptable for http
-        vars:
-          enable_http: yes
-        iptables:
-          chain: INPUT
-          protocol: udp
-          destination_port: "8080"
-          jump: ACCEPT
-        when: enable_http
-
-      - name: Enable port in firewall
-        firewalld:
-         # zone: dmz
-         # service: http
-          port: 8080/tcp
-          permanent: yes
-          state: enabled     
-=======================================
-
-./tomcat/roles/tasks/main.yml
-==================================================
----
-
-  - name: check tomcat is present or not
-    stat:
-      path: /opt/apache-tomcat/apache-tomcat-9.0.11/bin/
-    register: dirStat
-  - debug: var=dirStat
-
-  - name: install tomcat if not present
-    include_tasks: installTomcat.yml
-    when: dirStat.stat.exists == false
-
-  - name: Change mode for startup and shutdown script
-    file:
-      path: "{{ item }}"
-      mode: 0777
-      owner: root
-      group: root
-    with_items:
-      - '/opt/apache-tomcat/apache-tomcat-9.0.11/bin/shutdown.sh'
-      - '/opt/apache-tomcat/apache-tomcat-9.0.11/bin/startup.sh'
-      - '/opt/apache-tomcat/apache-tomcat-9.0.11/bin/catalina.sh'
-    when: dirStat.stat.exists == true
-
-  - include_tasks: stopStartTomcat.yml
-
-=======================================
-
-./tomcat/roles/tasks/stopStartTomcat.yml
-==================================================
----
-
-  - name: stop tomcat
-    command: nohup /opt/apache-tomcat/apache-tomcat-9.0.11/bin/shutdown.sh
-    tags: shutdown_tomcat
-
-  - name: start tomcat
-    command: nohup /opt/apache-tomcat/apache-tomcat-9.0.11/bin/startup.sh
-    tags: startup_tomcat
-=======================================
-
-./tomcat/roles/templates/context.xml
-==================================================
-<?xml version="1.0" encoding="UTF-8"?>
-<!--
-  Licensed to the Apache Software Foundation (ASF) under one or more
-  contributor license agreements.  See the NOTICE file distributed with
-  this work for additional information regarding copyright ownership.
-  The ASF licenses this file to You under the Apache License, Version 2.0
-  (the "License"); you may not use this file except in compliance with
-  the License.  You may obtain a copy of the License at
-
-      http://www.apache.org/licenses/LICENSE-2.0
-
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
--->
-<Context antiResourceLocking="false" privileged="true" >
-
-<!--
-  <Valve className="org.apache.catalina.valves.RemoteAddrValve"
-         allow="127\.\d+\.\d+\.\d+|::1|0:0:0:0:0:0:0:1" />
--->
-
-  <Manager sessionAttributeValueClassNameFilter="java\.lang\.(?:Boolean|Integer|Long|Number|String)|org\.apache\.catalina\.filters\.CsrfPreventionFilter\$LruCache(?:\$1)?|java\.util\.(?:Linked)?HashMap"/>
-
-</Context>
-=======================================
-
-./tomcat/roles/templates/context.xml.old
-==================================================
-<?xml version="1.0" encoding="UTF-8"?>
-<!--
-  Licensed to the Apache Software Foundation (ASF) under one or more
-  contributor license agreements.  See the NOTICE file distributed with
-  this work for additional information regarding copyright ownership.
-  The ASF licenses this file to You under the Apache License, Version 2.0
-  (the "License"); you may not use this file except in compliance with
-  the License.  You may obtain a copy of the License at
-
-      http://www.apache.org/licenses/LICENSE-2.0
-
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
--->
-<!-- The contents of this file will be loaded for each web application -->
-<Context>
-
-    <!-- Default set of monitored resources. If one of these changes, the    -->
-    <!-- web application will be reloaded.                                   -->
-    <WatchedResource>WEB-INF/web.xml</WatchedResource>
-    <WatchedResource>WEB-INF/tomcat-web.xml</WatchedResource>
-    <WatchedResource>${catalina.base}/conf/web.xml</WatchedResource>
-
-    <!-- Uncomment this to disable session persistence across Tomcat restarts -->
-    <!--
-    <Manager pathname="" />
-    -->
-</Context>
-=======================================
-
-./tomcat/roles/templates/host-manager.xml
-==================================================
-<?xml version="1.0" encoding="UTF-8"?>
-
-<Context privileged="true" antiResourceLocking="false" docBase="${catalina.home}/webapps/host-manager">
-    <Valve className="org.apache.catalina.valves.RemoteAddrValve" allow="^.*$" />
-</Context>
-=======================================
-
-./tomcat/roles/templates/manager.xml
-==================================================
-<?xml version="1.0" encoding="UTF-8"?>
-
-<Context privileged="true" antiResourceLocking="false" docBase="${catalina.home}/webapps/manager">
-    <Valve className="org.apache.catalina.valves.RemoteAddrValve" allow="^.*$" />
-</Context>
-=======================================
-
-./tomcat/roles/templates/tomcat-users.xml
-==================================================
-<?xml version="1.0" encoding="UTF-8"?>
-<!--
-  Licensed to the Apache Software Foundation (ASF) under one or more
-  contributor license agreements.  See the NOTICE file distributed with
-  this work for additional information regarding copyright ownership.
-  The ASF licenses this file to You under the Apache License, Version 2.0
-  (the "License"); you may not use this file except in compliance with
-  the License.  You may obtain a copy of the License at
-
-      http://www.apache.org/licenses/LICENSE-2.0
-
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
--->
-<tomcat-users xmlns="http://tomcat.apache.org/xml"
-              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-              xsi:schemaLocation="http://tomcat.apache.org/xml tomcat-users.xsd"
-              version="1.0">
-<!--
-  NOTE:  By default, no user is included in the "manager-gui" role required
-  to operate the "/manager/html" web application.  If you wish to use this app,
-  you must define such a user - the username and password are arbitrary. It is
-  strongly recommended that you do NOT use one of the users in the commented out
-  section below since they are intended for use with the examples web
-  application.
--->
-<!--
-  NOTE:  The sample user and role entries below are intended for use with the
-  examples web application. They are wrapped in a comment and thus are ignored
-  when reading this file. If you wish to configure these users for use with the
-  examples web application, do not forget to remove the <!.. ..> that surrounds
-  them. You will also need to set the passwords to something appropriate.
--->
-<!--
-  <role rolename="tomcat"/>
-  <role rolename="role1"/>
-  <user username="tomcat" password="<must-be-changed>" roles="tomcat"/>
-  <user username="both" password="<must-be-changed>" roles="tomcat,role1"/>
-  <user username="role1" password="<must-be-changed>" roles="role1"/>
--->
-
-  <role rolename="tomcat"/>
-  <role rolename="admin-gui"/>
-  <role rolename="admin-script"/>
-  <role rolename="manager-gui"/>
-  <role rolename="manager-status"/>
-  <role rolename="manager-script"/>
-  <role rolename="manager-jmx"/>
-  <user username="sksumanta" password="suman345" roles="tomcat,admin-gui,manager-gui,admin-script,manager-script,manager-status,manager-jmx"/>
-
-
-</tomcat-users>
-=======================================
-
-./tomcat/tomcat_setup.yml
-==================================================
----
-- hosts: 192.168.33.99 
-
-  gather_facts: true
-  remote_user: ujam
-  become: true
-  become_method: sudo
-
-  roles:
-#    the below line 'roles' is a directory present in tomcat directory
-    - roles
-
-
-# To execute use    ansible-playbook -i ./inventory/hosts   tomcat_setup.yml   --skip-tags "shutdown_tomcat" 
-=======================================
 
 ./9_2_blocks_N_when.yml
 ==================================================
@@ -2064,6 +2502,7 @@ all:
           with_items: [1,2,3]
       when:  ansible_distribution == 'CentOS' and ansible_hostname == 'jenkinslave1'
 =======================================
+
 
 ./9_3_blocks_exception_handling.yml
 ==================================================
@@ -2103,213 +2542,33 @@ all:
  
 =======================================
 
-./10_1_sending_mail.yml
+
+./deletefactdirectory
 ==================================================
 ---
-- hosts: control
-
+- hosts: linux
+  gather_facts: false
+  become: true
   tasks:
-    - name: send a mail to the gmail account
-      mail:
-        host: smtp.gmail.com
-        port: 587
-        secure: starttls
-        charset: utf-8
-        sender: sumanta.sahoo98@gmail.com
-        username: sumanta.sahoo98@gmail.com
-        password: SaraswatiSahoo
-        to: sumanta sahoo <sumanta.sahoo98@gmail.com>
-        subject: ansible report
-        body: System {{ ansible_hostname }} has been successfully provisioned.
+    - name: delete directory
+      file:
+        path: /etc/ansible/facts.d
+        state: absent
 =======================================
 
-./11_1_customModule.sh
+
+./getcustomfacts1.fact
 ==================================================
-# The custom module can be writen in any scripting language (like  unix shell scripting or python )  which can return JSON output
-# git clone https://github.com/ansible/ansible.git
-# cd /home/ujam/getansibleCostom/ansible/hacking
-#  ./test-module -m /home/ujam/ansibleDir/playbooks/11_1_customModule.sh 
-
-# Url for custom module " https://docs.ansible.com/ansible/latest/dev_guide/developing_modules_general.html " in python 
-
-# 
 #!/bin/bash
-
-ping -c 1 192.168.33.95 > /dev/null 2>/dev/null
-
-if [ $? == 0 ]
-   then
-      echo "{\"changed\": true , \"rc\": 0 }"
-else
-   echo "{\"failed\": true , \"msg\": \"failed to ping\", \"rc\":2}"
-fi
+echo {\""current_date\"" : \""`date`\""}
 =======================================
 
-./12_1_include_import.yml
+
+./getcustomfacts2.fact
 ==================================================
-# In Ansible we can reuse the content with include and import and roles 
-# All import* statements are pre-processed at the time playbooks are parsed.
-# All include* statements are processed as they encountered during the execution of the playbook.
-# So import (import_playbook, import_tasks, etc.) is static. 
-#    include (include_tasks, include_role, etc.) is dynamic.
-# "include: {{ codename }}.yml " 
-
-
-# In the below example include a playbook 
-
----
-- include: 9_1_blocks.yml
-
+#!/bin/bash
+echo [current_date]
+echo current_date=`date`
 =======================================
 
-./12_2_include_playbook.yml
-==================================================
----
-
-- include: 9_1_blocks.yml
-
-- hosts: 192.168.33.97
-
-  tasks:
-    - name: count no of file in the directory
-      shell: |
-             ls -1 | wc -l
-      args:
-        chdir: /home/ujam/workInsideTheDir/allYamlPrograms
-      register: theCount
-    - debug:         # var=theCount
-        msg: "cout is {{ theCount.stdout }}"
-=======================================
-
-./12_0_taskFile.yml
-==================================================
----
-- name: check the directory is exist or not
-  stat:  
-    path: /home/ujam/workInsideTheDir/allYamlPrograms
-  register: dirStat
-
-- name: result  
-  debug:
-    msg: >
-         {% if dirStat.stat.exists == true -%}
-            directory is exsit 
-         {% else -%}
-            directory is not exist
-         {% endif %}
-=======================================
-
-./12_0_yaml2ImportOrInclude.yml
-==================================================
----
-- hosts:  192.168.33.97
-
-  tasks:
-    - name: check the directory is exist or not
-      stat:  
-        path: /home/ujam/workInsideTheDir/allYamlPrograms
-      register: dirStat
-
-    - name: result  
-      debug:
-        msg: >
-            {% if dirStat.stat.exists == true -%}
-               directory is exsit 
-            {% else -%}
-               directory is not exist
-            {% endif %}
-=======================================
-
-./12_3_include_playbook_in_tasks.yml
-==================================================
----
-
-- hosts: 192.168.33.97
-
-  tasks:
-    - name: Include playbook in tasks
-      debug:
-        msg: include task file 12_0_taskFile.yml in the playbook tasks
-
-#    include_tasks is dynamic
-    - include_tasks: 12_0_taskFile.yml   # include a task file inside the playbook
-
-#    include is static
-#    - include: 12_0_taskFile.yml
-
-    - name: count no of file in the directory
-      shell: |
-             ls -1 | wc -l
-      args:
-        chdir: /home/ujam/workInsideTheDir/allYamlPrograms
-      register: theCount
-    - debug:         # var=theCount
-        msg: "cout is {{ theCount.stdout }}"
-=======================================
-
-./12_4_include_import.yml
-==================================================
-# inlude is static 
-# include_tasks is dynamic
-# import_tasks is static
-
-=======================================
-
-./13_0_roles.yml
-==================================================
-# Roles  is a logical structure means Roles is simply a directory structure. 
-# Using role it is easy to share and manage playbooks , templates , variables etc
-# Role can be developed independently in parallel by different entities and work well with version control 
-# Role can have dependencies on other roles allowing automatic inclusion.
-
-
-# In Roles directory structure the top level dirctory is the name of the role
-
-# Example of a 'Roles' directory structure
-
-#jms_test       # this is the name of the role
-#|----defaults  # this is the directory which holds the default variables
-#|      |____ main.yml
-#|----files     # If you want to use any script in the module then you can keep it in 'files' dirctory
-#|      |____ abc.sh
-#|----handlers  # It holds the handler content
-#|      |____ main.yml
-#|----meta      # this directory holds the setting for the roles and dependncy 
-#|      |____ main.yml
-#|----README.md # If you want to publish (to github/ version control) the role then we need this file 
-#|----tasks     # We include all the tasks 
-#|      |____ main.yml
-#|----templates # All jinja2 templates will be in this directory
-#|----tests     # This folder is useful for the unit test
-#|      |____ inventory
-#|      |____ test.yml
-#|----vars      # This folder holdes the role var
-#      |____ main.yml
-
-# To create the above directory structure you can use " ansible-galaxy init  directory_name "
-
-# As Role is a logical dirctory structure so it is not mandetory to follow same directory structure as above
-# As per our requirement we can create the dirctories and use it in the program.
-
-# For example as below
-
-# tomcat
-#  |___inventory
-#  |     |____group_vars
-#  |     |      |___yamlnodes.yml
-#  |     |____hosts
-#  |___roles  # inside roles directory we can create a directory 'theTomcat' to keep its tasks and template
-#  |     |____tasks
-#  |     |      |___installTomcat.yml
-#  |     |      |___main.yml
-#  |     |      |___stopStartTomcat.yml
-#  |     |____templates
-#  |            |___context.xml
-#  |            |___context.xml.old
-#  |            |___host-manager.xml
-#  |            |___manager.xml
-#  |            |___tomcat-users.xml
-#  |___tomcat_setup.yml
-#
-=======================================
 

@@ -1,0 +1,2 @@
+cd /opt/nexus/bin
+./nexus stop	 > /opt/nexus/nexusStop.log 2>&1

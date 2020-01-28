@@ -1,0 +1,55 @@
+---
+  - name: Download nexus and create the nexus installation folder if nexus directory not present
+    block:
+      - name: check the nexus directory exist or not
+        stat:
+          path: /opt/nexus_3
+        register: dirStat
+
+      - name: Create the nexus folder if nexus directory not present
+        file:
+          path: /opt/nexus_3
+          recurse: yes
+          state: directory
+        when: dirStat.stat.exists ==  false
+
+  - name: Extract nexus from archive if nexus is not extracted
+    block:
+      - name: check nexus is extracted or not
+        shell: "ls -1 | wc -l"
+        args:
+          chdir: /opt/nexus_3/
+        register: counts
+      - debug: var=counts
+
+      - name: Download nexus using get_url module
+        get_url:
+          url: "{{ nexus.software.source }}"
+          dest: /tmp/
+        when: counts.stdout | int == 0
+
+      - name: Extract nexus in nexus_3 directory
+        unarchive:
+          src: /tmp/nexus-*.tar
+          remote_src: yes
+          dest: /opt/nexus_3
+        when: counts.stdout | int == 0
+
+  - name: enable firewall and iptable for nexus
+    block:
+      - name: enable  iptable for nexus
+        vars: 
+          enable_nexus: yes
+        iptables:
+          chain: INPUT
+          protocol: udp
+          destination_port: "8081"
+          jump: ACCEPT
+        when: enable_nexus
+
+      - name: enable port in firewall
+        firewalld:
+          # zone: dmz
+          port: 8081/tcp
+          permanent: yes
+          state: enabled

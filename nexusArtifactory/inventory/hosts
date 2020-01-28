@@ -1,0 +1,26 @@
+---
+#   - Top level entries are assumed to be groups, start with 'all' to have a full hierarchy
+#   - Hosts must be specified under a group's   hosts:
+#   - Anything defined under a host is assumed to be a var
+#   - A hostname/IP can be a member of multiple groups
+
+all:
+  children:
+    control:
+      hosts:
+        192.168.33.60:
+    jenkinsmaster:
+      hosts:
+        192.168.33.95:
+    yamlnodes:
+      hosts:
+        192.168.33.97:
+          ansible_become: true
+          ansible_become_pass: suman345
+        192.168.33.99:
+          ansible_become: true
+          ansible_become_pass: suman345
+    linux:
+      children:
+        jenkinsmaster:
+        yamlnodes:

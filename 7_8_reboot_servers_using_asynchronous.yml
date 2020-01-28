@@ -1,0 +1,28 @@
+---
+- hosts: linux
+
+  tasks:
+    - name: check the uptime prior to reboot
+      shell: uptime
+      register: preRebootUptime
+    - debug: var=preRebootUptime.stdout
+
+    - name: reboot the nodes without polling (poll=0)
+      shell: reboot
+      async: 20
+      poll: 0
+      become: true
+
+    - name: wait for the host to finish reboot
+      wait_for:
+        port: "{{ ansible_port|default(ansible_ssh_port)|default(22) }}"
+        host: "{{ ansible_ssh_host|default(ansible_host)|default(inventory_hostname) }}"
+        search_regex: OpenSSH
+        delay: 20  # do not check for at least 20 sec
+      connection: local
+      become: false
+
+    - name: check the uptime after reboot
+      shell: uptime
+      register: postRebootUptime
+    - debug: var=postRebootUptime.stdout

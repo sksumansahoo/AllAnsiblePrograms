@@ -1,0 +1,13 @@
+---                
+
+  - name: check nexus is presnet or not
+    stat:
+      path: /opt/nexus/bin/
+    register: dirStat
+  - debug: var=dirStat
+
+  - name: install nexus if not present
+    include_tasks: installnexus.yml
+    when: dirStat.stat.exists == false
+
+  - include_tasks: stopstartNexus.yml

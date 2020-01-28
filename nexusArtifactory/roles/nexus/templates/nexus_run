@@ -1,0 +1,4 @@
+cd /opt/nexus/
+rm -f hs*log 
+cd /opt/nexus/bin
+./nexus run	 > /opt/nexus/nexusRun.log 2>&1
