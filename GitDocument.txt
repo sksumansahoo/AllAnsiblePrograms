@@ -336,8 +336,6 @@ Under your repository name, click  Settings.
 Under Danger Zone, click Delete this repository.
 
 
-
-
 what is git branch? and use branch?
 	Git branch is essentially an independent line of development,
 by which one can work without affecting other team memebers.
@@ -361,6 +359,10 @@ how to push code into new local branch to new remote server?
 
 	git push origin new_branch_name
 		
+how to push particular commit form local branch to remote server?
+
+	git push origin commit_hash:branch_name
+
 how to merge new branch to master branch?
 
 	git checkout master   ------ checkout to local
