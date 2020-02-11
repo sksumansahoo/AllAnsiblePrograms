@@ -2571,8 +2571,9 @@ echo [current_date]
 echo current_date=`date`
 =======================================
 
+
 ./1_4_listGitBranch.yml
-===================================================
+==================================================
 ---
 - hosts: control
 
@@ -2582,7 +2583,510 @@ echo current_date=`date`
              git ls-remote -t -h https://github.com/sksumanta/devops_SampleWebApp.git
       register: output
     - debug: var=output.stdout
-========================================
+=======================================
 
+
+./setupTomcatNexus/inventory/group_vars/yamlnodes.yml
+==================================================
+##############################
+# Common configuration
+# Bydefault ansible-playbook command look group_vars/ and host_vars/ directory in the current working directory
+# But other Ansible commands like ansible, ansible-console, etc look group_vars/ and host_vars/ directory 
+# inside the inventory directory.  
+##############################
+---
+
+tomcat:
+  software:
+    source: https://archive.apache.org/dist/tomcat/tomcat-9/v9.0.11/bin/apache-tomcat-9.0.11.tar.gz
+    certs:
+      validate: false
+
+nexus:
+  software:
+    source: https://download.sonatype.com/nexus/3/latest-unix.tar.gz
+    certs:
+      validate: false
+=======================================
+
+
+./setupTomcatNexus/inventory/hosts
+==================================================
+---
+#   - Top level entries are assumed to be groups, start with 'all' to have a full hierarchy
+#   - Hosts must be specified under a group's   hosts:
+#   - Anything defined under a host is assumed to be a var
+#   - A hostname/IP can be a member of multiple groups
+
+all:
+  children:
+    control:
+      hosts:
+        192.168.33.60:
+    jenkinsmaster:
+      hosts:
+        192.168.33.95:
+    yamlnodes:
+      hosts:
+        192.168.33.97:
+          ansible_become: true
+          ansible_become_pass: suman345
+        192.168.33.99:
+          ansible_become: true
+          ansible_become_pass: suman345
+    linux:
+      children:
+        jenkinsmaster:
+        yamlnodes:
+=======================================
+
+
+./setupTomcatNexus/nexus/tasks/installnexus.yml
+==================================================
+---
+  - name: Download nexus and create the nexus installation folder if nexus directory not present
+    block:
+      - name: check the nexus directory exist or not
+        stat:
+          path: /opt/nexus_3
+        register: dirStat
+
+      - name: Create the nexus folder if nexus directory not present
+        file:
+          path: /opt/nexus_3
+          recurse: yes
+          state: directory
+        when: dirStat.stat.exists ==  false
+
+  - name: Extract nexus from archive if nexus is not extracted
+    block:
+      - name: check nexus is extracted or not
+        shell: "ls -1 | wc -l"
+        args:
+          chdir: /opt/nexus_3/
+        register: counts
+      - debug: var=counts
+
+      - name: Download nexus using get_url module
+        get_url:
+          url: "{{ nexus.software.source }}"
+          dest: /tmp/
+        when: counts.stdout | int == 0
+
+      - name: Extract nexus in nexus_3 directory
+        unarchive:
+          src: /tmp/nexus-*.tar
+          remote_src: yes
+          dest: /opt/nexus_3
+        when: counts.stdout | int == 0
+
+  - name: enable firewall and iptable for nexus
+    block:
+      - name: enable  iptable for nexus
+        vars: 
+          enable_nexus: yes
+        iptables:
+          chain: INPUT
+          protocol: udp
+          destination_port: "8081"
+          jump: ACCEPT
+        when: enable_nexus
+
+      - name: enable port in firewall
+        firewalld:
+          # zone: dmz
+          port: 8081/tcp
+          permanent: yes
+          state: enabled
+=======================================
+
+
+./setupTomcatNexus/nexus/tasks/main.yml
+==================================================
+---                
+
+  - name: check nexus is presnet or not
+    stat:
+      path: /opt/nexus/bin/
+    register: dirStat
+  - debug: var=dirStat
+
+  - name: install nexus if not present
+    include_tasks: installnexus.yml
+    when: dirStat.stat.exists == false
+
+  - include_tasks: stopstartNexus.yml
+=======================================
+
+
+./setupTomcatNexus/nexus/tasks/stopstartNexus.yml
+==================================================
+---
+
+  - name: copy the start script template
+    template:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      mode: 0777
+      backup: yes
+      owner: ujam
+      group: ujam
+    with_items:
+      - {src: '/home/ujam/ansibleDir/playbooks/setupTomcatNexus/nexus/templates/nexus_run' , dest: '/opt/'}
+      - {src: '/home/ujam/ansibleDir/playbooks/setupTomcatNexus/nexus/templates/nexus_stop' , dest: '/opt/'}
+
+  - name: start nexus 
+#    shell:  /opt/nexus_run &
+    command: nohup /opt/nexus_run
+    tags: start_nexus
+
+  - name: stop nexus
+    command:  nohup /opt/nexus_stop 
+    tags: stop_nexus    
+=======================================
+
+
+./setupTomcatNexus/nexus/templates/nexus_run
+==================================================
+cd /opt/nexus/
+rm -f hs*log 
+cd /opt/nexus/bin
+./nexus run	 > /opt/nexus/nexusRun.log 2>&1
+=======================================
+
+
+./setupTomcatNexus/nexus/templates/nexus_stop
+==================================================
+cd /opt/nexus/bin
+./nexus stop	 > /opt/nexus/nexusStop.log 2>&1
+=======================================
+
+
+./setupTomcatNexus/tomcat/tasks/installTomcat.yml
+==================================================
+---
+
+  - name: Tomcat URL info
+    debug:         # value of tomcat.software.source comes from group_var/yamlnodes.yml
+      msg:  "Download tomcat from {{ tomcat.software.source }}"
+
+  - name: Download tomcat using get_url module
+    get_url: 
+      url: "{{ tomcat.software.source }}"
+      dest: /tmp/
+
+################### we can use wget in command module ################
+#    - name: Download tomcat                                         #
+#      command: " wget {{ tomcat.software.source }}"                 #
+#      args:                                                         #
+#        chdir: /tmp/                                                #
+######################################################################
+
+  - name: check tomcat directory if not exist create the directory
+    block:
+      - name: check tomcat directory
+        stat:
+          path: /opt/apache-tomcat
+        register: dirStat
+     #- debug: var=dirStat 
+
+      - name: create tomcat directory if not exist
+        file:
+          path: /opt/apache-tomcat
+          recurse: true
+          state: directory
+        when: dirStat.stat.exists == false
+
+  - name: Extract tomcat from archive if tomcat is not extracted
+    block:
+      - name: check tomcat is extracted or not
+        shell: " ls -1 | wc  -l"
+        args:
+          chdir: /opt/apache-tomcat/
+        register: counts
+      - debug: var=counts
+
+      - name: extract tomcat 
+        unarchive:
+          src: /tmp/apache-tomcat-9.0.11.tar.gz
+          remote_src: yes    #   yes    indicate the archived file is already on the remote system 
+          dest: /opt/apache-tomcat
+        when: counts.stdout | int == 0
+
+  - name: Ansible template with_items
+    template:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      mode: 0777
+      backup: yes
+      owner: root
+      group: root
+    with_items:
+      - {src: '/home/ujam/ansibleDir/playbooks/setupTomcatNexus/tomcat/templates/context.xml' , dest: '/opt/apache-tomcat/apache-tomcat-9.0.11/webapps/manager/META-INF/'}
+      - {src: '/home/ujam/ansibleDir/playbooks/setupTomcatNexus/tomcat/templates/tomcat-users.xml' , dest: '/opt/apache-tomcat/apache-tomcat-9.0.11/conf/'}
+      - {src: '/home/ujam/ansibleDir/playbooks/setupTomcatNexus/tomcat/templates/host-manager.xml' , dest: '/opt/apache-tomcat/apache-tomcat-9.0.11/conf/Catalina/localhost/'}
+      - {src: '/home/ujam/ansibleDir/playbooks/setupTomcatNexus/tomcat/templates/manager.xml' , dest: '/opt/apache-tomcat/apache-tomcat-9.0.11/conf/Catalina/localhost/'}
+ 
+  - name: enable firewall and iptable for http   
+    block:
+      - name: enable  iptable for http
+        vars:
+          enable_http: yes
+        iptables:
+          chain: INPUT
+          protocol: udp
+          destination_port: "8080"
+          jump: ACCEPT
+        when: enable_http
+
+      - name: Enable port in firewall
+        firewalld:
+         # zone: dmz
+         # service: http
+          port: 8080/tcp
+          permanent: yes
+          state: enabled     
+=======================================
+
+
+./setupTomcatNexus/tomcat/tasks/main.yml
+==================================================
+---
+
+  - name: check tomcat is present or not
+    stat:
+      path: /opt/apache-tomcat/apache-tomcat-9.0.11/bin/
+    register: dirStat
+  - debug: var=dirStat
+
+  - name: install tomcat if not present
+    include_tasks: installTomcat.yml
+    when: dirStat.stat.exists == false
+
+  - name: Change mode for startup and shutdown script
+    file:
+      path: "{{ item }}"
+      mode: 0777
+      owner: root
+      group: root
+    with_items:
+      - '/opt/apache-tomcat/apache-tomcat-9.0.11/bin/shutdown.sh'
+      - '/opt/apache-tomcat/apache-tomcat-9.0.11/bin/startup.sh'
+      - '/opt/apache-tomcat/apache-tomcat-9.0.11/bin/catalina.sh'
+    when: dirStat.stat.exists == true
+
+  - include_tasks: stopStartTomcat.yml
+
+=======================================
+
+
+./setupTomcatNexus/tomcat/tasks/stopStartTomcat.yml
+==================================================
+---
+
+  - name: stop tomcat
+    command: nohup /opt/apache-tomcat/apache-tomcat-9.0.11/bin/shutdown.sh
+    tags: shutdown_tomcat
+
+  - name: start tomcat
+    command: nohup /opt/apache-tomcat/apache-tomcat-9.0.11/bin/startup.sh
+    tags: startup_tomcat
+=======================================
+
+
+./setupTomcatNexus/tomcat/templates/context.xml
+==================================================
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<Context antiResourceLocking="false" privileged="true" >
+
+<!--
+  <Valve className="org.apache.catalina.valves.RemoteAddrValve"
+         allow="127\.\d+\.\d+\.\d+|::1|0:0:0:0:0:0:0:1" />
+-->
+
+  <Manager sessionAttributeValueClassNameFilter="java\.lang\.(?:Boolean|Integer|Long|Number|String)|org\.apache\.catalina\.filters\.CsrfPreventionFilter\$LruCache(?:\$1)?|java\.util\.(?:Linked)?HashMap"/>
+
+</Context>
+=======================================
+
+
+./setupTomcatNexus/tomcat/templates/context.xml.old
+==================================================
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<!-- The contents of this file will be loaded for each web application -->
+<Context>
+
+    <!-- Default set of monitored resources. If one of these changes, the    -->
+    <!-- web application will be reloaded.                                   -->
+    <WatchedResource>WEB-INF/web.xml</WatchedResource>
+    <WatchedResource>WEB-INF/tomcat-web.xml</WatchedResource>
+    <WatchedResource>${catalina.base}/conf/web.xml</WatchedResource>
+
+    <!-- Uncomment this to disable session persistence across Tomcat restarts -->
+    <!--
+    <Manager pathname="" />
+    -->
+</Context>
+=======================================
+
+
+./setupTomcatNexus/tomcat/templates/host-manager.xml
+==================================================
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Context privileged="true" antiResourceLocking="false" docBase="${catalina.home}/webapps/host-manager">
+    <Valve className="org.apache.catalina.valves.RemoteAddrValve" allow="^.*$" />
+</Context>
+=======================================
+
+
+./setupTomcatNexus/tomcat/templates/manager.xml
+==================================================
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Context privileged="true" antiResourceLocking="false" docBase="${catalina.home}/webapps/manager">
+    <Valve className="org.apache.catalina.valves.RemoteAddrValve" allow="^.*$" />
+</Context>
+=======================================
+
+
+./setupTomcatNexus/tomcat/templates/tomcat-users.xml
+==================================================
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<tomcat-users xmlns="http://tomcat.apache.org/xml"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://tomcat.apache.org/xml tomcat-users.xsd"
+              version="1.0">
+<!--
+  NOTE:  By default, no user is included in the "manager-gui" role required
+  to operate the "/manager/html" web application.  If you wish to use this app,
+  you must define such a user - the username and password are arbitrary. It is
+  strongly recommended that you do NOT use one of the users in the commented out
+  section below since they are intended for use with the examples web
+  application.
+-->
+<!--
+  NOTE:  The sample user and role entries below are intended for use with the
+  examples web application. They are wrapped in a comment and thus are ignored
+  when reading this file. If you wish to configure these users for use with the
+  examples web application, do not forget to remove the <!.. ..> that surrounds
+  them. You will also need to set the passwords to something appropriate.
+-->
+<!--
+  <role rolename="tomcat"/>
+  <role rolename="role1"/>
+  <user username="tomcat" password="<must-be-changed>" roles="tomcat"/>
+  <user username="both" password="<must-be-changed>" roles="tomcat,role1"/>
+  <user username="role1" password="<must-be-changed>" roles="role1"/>
+-->
+
+  <role rolename="tomcat"/>
+  <role rolename="admin-gui"/>
+  <role rolename="admin-script"/>
+  <role rolename="manager-gui"/>
+  <role rolename="manager-status"/>
+  <role rolename="manager-script"/>
+  <role rolename="manager-jmx"/>
+  <user username="sksumanta" password="suman345" roles="tomcat,admin-gui,manager-gui,admin-script,manager-script,manager-status,manager-jmx"/>
+
+
+</tomcat-users>
+=======================================
+
+
+./setupTomcatNexus/nexus_setup.yml
+==================================================
+---
+
+- hosts: 192.168.33.99
+
+  gather_facts: true
+  remote_user: ujam
+  become: true
+  become_method: sudo
+
+  roles:
+    - nexus
+    
+=======================================
+
+
+./setupTomcatNexus/tomcat_setup.yml
+==================================================
+---
+- hosts: 192.168.33.99 
+
+  gather_facts: true
+  remote_user: ujam
+  become: true
+  become_method: sudo
+
+  roles:
+#    the below line 'roles' is a directory present in tomcat directory
+    - tomcat
+
+
+# To execute use    ansible-playbook -i ./inventory/hosts   tomcat_setup.yml   --skip-tags "shutdown_tomcat" 
+=======================================
+
+
+./14_1_docker_ansible.yml
+==================================================
+---
+- hosts: dockernode
+
+  tasks: 
+    - name: pull ubuntu-sshd image
+      docker_image:
+        name: rastasheep/ubuntu-sshd
+=======================================
 
 
