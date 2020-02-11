@@ -52,3 +52,54 @@
 #  |            |___tomcat-users.xml
 #  |___tomcat_setup.yml
 #
+
+#
+# [ujam@yamlServer playbooks]$ tree nexusArtifactory
+# nexusArtifactory
+# |---- inventory
+# |     |---- group_vars
+# |     |     |- yamlnodes.yml
+# |     |- hosts
+# |---- nexus_setup.yml
+# |- roles
+#     |- nexus
+#         |---- tasks
+#         |     |---- installnexus.yml
+#         |     |---- main.yml
+#         |     |- stopstartNexus.yml
+#         |- templates
+#                 |---- nexus_run
+#                 |- nexus_stop
+#
+#
+
+
+
+
+#   [ujam@yamlServer playbooks]$ tree setupTomcatNexus
+#   setupTomcatNexus
+#   |---- inventory
+#   |    |---- group_vars
+#   |    |       |- yamlnodes.yml
+#   |    |- hosts
+#   |---- nexus
+#   |      |---- tasks
+#   |      |        |---- installnexus.yml
+#   |      |        |---- main.yml
+#   |      |        |- stopstartNexus.yml
+#   |      |--- templates
+#   |               |---- nexus_run
+#   |               |- nexus_stop
+#   |---- nexus_setup.yml
+#   |---- tomcat
+#   |     |---- tasks
+#   |     |     |---- installTomcat.yml
+#   |     |     |---- main.yml
+#   |     |     |- stopStartTomcat.yml
+#   |     |- templates
+#   |           |---- context.xml
+#   |           |---- context.xml.old
+#   |           |---- host-manager.xml
+#   |           |---- manager.xml
+#   |           |- tomcat-users.xml
+#   |- tomcat_setup.yml
