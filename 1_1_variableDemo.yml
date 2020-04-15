@@ -20,3 +20,12 @@
 #                                   or
 #ansible-playbook -i /home/ujam/hosts.yml  1_1_variableDemo.yml  --extra-vars='message="double quot when we specify new line character"'
 
+
+
+# Variable precedence
+#================================
+# 1- Extra vars , 2- Task vars ( only for a task ) , 3- Block vars ( only for a task in a block ) , 4- Role & include vars 
+# 5- play var-files , 6- play var-prompts , 7- play vars , 8- set_facts , 9- registered vars , 10- host facts , 
+# 11- playbook host-vars , 12- playbook group-vars , 13- inventory hosts-vars , 14- inventory group-vars , 15- inventory vars 
+# 16- roles default vars
+
