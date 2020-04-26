@@ -297,8 +297,141 @@ if you are not using any user "-u user_name"  and use  "-k --become"  then defau
 
 Gathering facts / setup module
 =====================================
-	By useing "setup" module you can gather fact about the hosts
+	The facts are pieces of information regarding the remote systems to which you have connected.
+	It contains information like IP addresses, the OS installed, Ethernet devices, mac address, 
+	time/date related data, hardware information etc.
+	
+	By useing "setup" module you can gather fact about the hosts. 
 	
 		ansible -m setup all
 		
 		ansible -m setup 192.168.33.75
+
+copy module / File module 
+=====================================
+	*) The "copy" module use to copy file from server to multiple nodes concurrently.
+	
+	src ==> source 
+	dest ==> destination
+	
+	[uansible@yamlserver ansibleDir]$ ansible yamlnodes -m copy -a "src=/home/uansible/ansibleDir/sample.txt
+dest=/home/uansible/destinationSample.txt"
+
+
+	*) Using the "file" module we can transfer the file as well as change the ownership and permissions on files. 
+		
+		[uansible@yamlserver ansibleDir]$ ansible yamlnodes -m file -a "dest=/home/uansible/destinationSample.txt mode=600"
+		
+		[uansible@yamlserver ansibleDir]$ ansible yamlnodes -m file -a 'dest=/home/uansible/destinationSample.txt mode=777 owner=ansible group=ansible' --ask-pass -K --become
+								or
+		[uansible@yamlserver ansibleDir]$ ansible yamlnodes -m file -a 'dest=/home/uansible/destinationSample.txt mode=777 owner=ansible group=ansible' --ask-become-pass -K --become
+
+difference between  " --ask-become-pass " and " --ask-pass"
+-------------------------------------------------------------------
+	for password authentication we can use "--ask-pass".
+	If using sudo features and when sudo requires a password, supply "--ask-become-pass"
+
+
+*) The file module can also create directories, similar to mkdir -p
+	
+	[uansible@yamlserver ansibleDir]$ ansible yamlnodes -m file -a "dest=/home/uansible/testDir mode=775 owner=ansible group=uansible state=directory" -u uansible
+						or by using sudo
+	[uansible@yamlserver ansibleDir]$ ansible yamlnodes -m file -a "dest=/home/uansible/testDir mode=775 owner=ansible group=uansible state=directory" --ask-become-pass -K --become
+
+*) Also using "file" module we can delete directories (recursively) and delete files:
+
+	 ansible yamlnodes -m file -a "dest=/home/uansible/ state=absent" --ask-become-pass -k --become
+
+Different state in file module
+-----------------------------------
+  absent , directory ,hard ,link , touch
+  
+  absent --> delete directories (recursively) and delete files
+  directory --> create directories, similar to mkdir -p
+  hard	--> create or change  hard link
+  link --> create or change  symbolic  link
+  touch --> an empty file will be created if file not exist in the path, else updated file access and modification times
+
+playbook
+============	  
+playbook uses 4 space indentation and use 'ansible-playbook' to execute playbook
+
+Lets consider an example to create file through playbook
+=================================================================
+
+[uansible@yamlserver ansibleDir]$ cat  createAfile.yml
+---
+- hosts: yamlnodes
+  tasks:
+      - name: create a file using ansible
+        file:
+            path: "/home/uansible/yamlDir/ansibleTopic/playbookFile"
+            state: touch
+[uansible@yamlserver ansibleDir]$
+
+check the syntax of the playbook
+----------------------------------------------
+ansible-playbook createAfile.yml --syntax-check
+
+execute playbook
+--------------------
+ ansible-playbook createAfile.yml
+ 
+ 
+EX2 ---> create file with data using copy module in yaml.
+-------------------------------------------------------------
+
+[uansible@yamlserver playbooks]$ cat 2createFileWithDat.yml
+---
+- hosts: yamlnodes
+  tasks:
+  - name: Create file with the containt using copy module
+    copy:
+      dest: "/home/uansible/yamlDir/ansibleTopic/fileWithData.txt"
+      content:
+        I am reading playbook.
+        To create file with the containt i am using copy module
+        copy module has an option "content" to write the content in file.
+[uansible@yamlserver playbooks]$
+
+
+Loop in ansible
+==========================
+in ansible "{{ item }}" create a loop and check for "with_items" option.
+
+EX3--> Create multiple files using "file" module and "with_items" option in ansible yaml code
+-----------------------------------------------------------------------------------------
+
+[uansible@yamlserver playbooks]$ cat 3createMutiFile.yml
+---
+- hosts: yamlnodes
+  tasks:
+  - name: Create multiple files using "file" module and "with_items" option in ansible yaml code
+    file:
+      path: "/home/uansible/yamlDir/ansibleTopic/{{item}}"
+      state: touch
+      mode: 0775
+    with_items:
+    - accessfile.log
+    - systemfile.log
+    - propertiesfile.txt
+    - conffile.log
+[uansible@yamlserver playbooks]$
+
+Ex4 --->  create muiltple file with different permissions
+------------------------------------------------------------------
+
+[uansible@yamlserver playbooks]$ cat 4multiFileWithDiffPermission.yml
+---
+- hosts: yamlnodes
+  tasks:
+  - name: Create multiple file with different permision
+    file:
+      path: "/home/uansible/yamlDir/ansibleTopic/{{item.location}}"
+      state: touch
+      mode: "{{item.mode}}"
+    with_items:
+    - {location: '4_file1.txt' , mode: '0644'}
+    - {location: '4_file2.txt' , mode: '0750'}
+[uansible@yamlserver playbooks]$
+
