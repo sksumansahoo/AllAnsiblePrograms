@@ -65,7 +65,8 @@ Inventory file / hosts file
 
 We can write the inventory file in the form of yaml or json format.
 
-ex-->
+ex--> Yaml format
+      ------------
 	[uansible@yamlserver ansibleDir]$ cat hosts.yaml
 		---
 		control:
@@ -159,19 +160,20 @@ ad-hoc  module
 	The ad-hoc module is something which might do something realy fast but donot want to
 save for later.
 
-	how to ran ad-hoc commands / how to Work with Patterns
-	------------------------------------------------------
-		The basic command consists of "ansible" then host groups from "hosts" to run 
-		
-	against, "-m <module-name>" optionally providing the agrguments via "-a ARGS"
+    how to ran ad-hoc commands / how to Work with Patterns
+    ------------------------------------------------------
+	The basic command consists of "ansible" then host groups from "hosts" to run 
+	    against, "-m <module-name>" optionally providing the agrguments via "-a ARGS"
 	
 		ansible <host_group> -m <module_name> -a <arguments>
-		
-	When running any command with the Ansible ad-hoc CLI pay attention to quoting rules
-	Using double execute the command in the same machine, where Single quotes would 
-	evaluate the variable on the box you were on.
-	
+---------------------------------------------------------------------------------------------------------	
+|	When running any command with the Ansible ad-hoc CLI pay attention to quoting rules		|
+|	Using double execute the command in the same machine, where Single quotes would 		|
+|	evaluate the variable on the box you were on.							|
+---------------------------------------------------------------------------------------------------------
+
 	[uansible@yamlserver ansibleDir]$ ansible yamlnodes -m shell -a "echo $HOSTNAME"
+	
 		192.168.33.75 | CHANGED | rc=0 >>
 		yamlserver.host			##### here command executed in same machine
 		
@@ -186,27 +188,117 @@ save for later.
 		192.168.33.75 | CHANGED | rc=0 >>
 		yamlnode2.host
 	 
-	 if you want to read the list of hosts from a file, prefix the file name with ‘@’.
+if you want to read the list of hosts from a file, prefix the file name with ‘@’.
 		
-		vi ips.txt
-			192.168.33.70
-			192.168.33.75
+	vi ips.txt
+	      192.168.33.70
+	      192.168.33.75
 			
-		[uansible@yamlserver ansibleDir]$ ansible 192.168.33.* -m ping --limit @ips.txt
+	[uansible@yamlserver ansibleDir]$ ansible 192.168.33.* -m ping --limit @ips.txt
 		
-			192.168.33.70 | SUCCESS => {
-				"ansible_facts": {
-					"discovered_interpreter_python": "/usr/bin/python"
-				},
-				"changed": false,
-				"ping": "pong"
-			}
-			192.168.33.75 | SUCCESS => {
-				"ansible_facts": {
-					"discovered_interpreter_python": "/usr/bin/python"
-				},
-				"changed": false,
-				"ping": "pong"
-			}
+		192.168.33.70 | SUCCESS => {
+			"ansible_facts": {
+				"discovered_interpreter_python": "/usr/bin/python"
+			},
+			"changed": false,
+			"ping": "pong"
+		}
+		192.168.33.75 | SUCCESS => {
+			"ansible_facts": {
+				"discovered_interpreter_python": "/usr/bin/python"
+	 		},
+			"changed": false,
+			"ping": "pong"
+		}
 	
   
+if you want to use all hosts form the inventory in ansible you can use      "all" or "*"
+
+	[uansible@yamlserver ansibleDir]$ ansible all -m ping --limit @ips.txt
+						or
+	[uansible@yamlserver ansibleDir]$ ansible 192.168.33.* -m ping --limit @ips.txt
+
+
+How to get the hostname 
+-----------------------------
+     ansible  -i  /home/ujam/ansibleDir/hosts.yaml  all  -a "hostname -s" -o
+	
+		192.168.33.95 | CHANGED | rc=0 | (stdout) jenkinMaster
+		192.168.33.97 | CHANGED | rc=0 | (stdout) jenkinslave1
+		192.168.33.99 | CHANGED | rc=0 | (stdout) jenkinslave2
+		192.168.33.60 | CHANGED | rc=0 | (stdout) yamlserver
+
+What is the use of ad-hoc 
+--------------------------
+Using ad-hoc , module we can do all the below activity
+	Parallelism and Shell Commands
+	Gathering Facts
+	File Transfer
+	Managing Packages
+	Users and Groups
+	Deploying From Source Control
+	Managing Services
+	Time Limited Background Operations
+
+command module 
+-----------------------------------
+	*)  ansible yamlnodes -m command -a 'ls -lR'   # list the file and dectory recursivly
+	*)  ansible yamlnodes -m command -a 'mkdir -p /home/uansible/yamlDir/ansibleTopic'    # create a dicrectory
+	
+	reboot the system parallely using the "reboot" command with ansible command module for 
+all servers in "yamlnodes" group in 5 parallel forks:
+	
+	*)	ansible yamlnodes -m command -a "/sbin/reboot" -f 5 		# -a is arguments , -f is fork / --fork
+	
+Difference between command module and shell module
+=====================================================
+The command module does not support extended shell syntax like piping and redirects.
+In command module we can use  shell variables.
+
+Shell module
+----------------------------
+	[uansible@yamlserver ansibleDir]$ ansible yamlnodes -m shell -a 'echo $HOSTNAME'
+	
+	192.168.33.70 | CHANGED | rc=0 >>
+	yamlnode1.host
+	
+	192.168.33.75 | CHANGED | rc=0 >>
+	yamlnode2.host
+	
+Ansible will default to running from your user account. If you want to run commands as a different user use "-u usrname"
+if you are not using a passwordless privilege ( ssh passwordless )for different user it will interactively 
+prompt you for the password to use.
+
+	[uansible@yamlserver ansibleDir]$ ansible yamlnodes -m shell -a "ls -lrt| grep ""^-" | awk print '{$9}' " -u uansible 
+		
+		192.168.33.70 | CHANGED | rc=0 >>
+		a
+		destinationsample.txt
+		destinationSample.txt
+		
+		192.168.33.75 | CHANGED | rc=0 >>
+		a
+		destinationsample.txt
+		destinationSample.txt
+		
+if you are not using any user "-u user_name"  and use  "-k --become"  then default will be "root" user.
+
+	[uansible@yamlserver ansibleDir]$ ansible yamlnodes -m shell -a "ls" -u uansible -k --become
+		SSH password:
+		192.168.33.70 | CHANGED | rc=0 >>
+		a
+		destinationsample.txt
+		destinationSample.txt
+		
+		192.168.33.75 | CHANGED | rc=0 >>
+		a
+		destinationsample.txt
+		destinationSample.txt
+
+Gathering facts / setup module
+=====================================
+	By useing "setup" module you can gather fact about the hosts
+	
+		ansible -m setup all
+		
+		ansible -m setup 192.168.33.75
