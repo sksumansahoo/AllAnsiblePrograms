@@ -1,0 +1,212 @@
+
+What is Ansible? or Why Ansible?
+	Anisble is an open source configuration management and deployment tool written in Python.
+	It can also do IT orchestration, where you have to run tasks in sequence and create a 
+	chain of events which can run on several different servers or devices. 
+	
+What are the other tool similar to Anisble?
+	Salt Stack , CF engine , Chef , Puppet these are the tool similar to Anisble.
+	These tools are konwn as infrastructure as a code.
+	
+What is the meaning of infrastructure as a code?
+	Using these tools we can perform below activity
+		installing software.
+		upgrade of OS
+		Downgrade of OS
+		Install patches
+		deploy application
+	So these tools are konwn as infrastructure as a code.
+
+Adventage in Ansible?
+	Ansible is first processing.
+	we no need to install the agent in the nodes.
+	Ansible work as push mechanisim  
+	Easy to write the program using YAML.
+	Ansible is inbuild SSH.
+	
+Terminology in Ansible?
+	modules , template , inventory file , playbook , roles , tasks , plays , 
+	ansible galexy , ansible tower etc...
+
+What is ansible config file?
+	Some settings in Ansible are adjustable via a configuration file (ansible.cfg).
+	Ansible search its configuration file in following order:
+
+		ANSIBLE_CONFIG (environment variable if set)
+		ansible.cfg (in the current directory)
+		~/.ansible.cfg (in the home directory)
+		/etc/ansible/ansible.cfg
+	If you install ansible through package manager (yum) then the latest ansible.cfg 
+	file should be present in /etc/ansible.
+
+Inventory file / hosts file
+=====================================
+	The Ansible inventory file defines the hosts and groups of hosts upon which 
+	commands, modules, and tasks in a playbook operate.
+	The default location for the inventory file is /etc/ansible/hosts.
+	We can change as per the our Ansible environment and plugins.
+	The inventory file can list individual hosts or user-defined groups of hosts 
+	on which we can perform the some operational and configuration tasks.
+	
+	Example of a hosts file
+	------------------------
+		host1.example.net 		
+		
+		[nodeservers]
+		192.168.33.70
+
+		[routers]
+		router1.example.net 
+		router2.example.net
+		
+		[switches]
+		switch1.example.net
+		switch2.example.net 																							
+
+We can write the inventory file in the form of yaml or json format.
+
+ex-->
+	[uansible@yamlserver ansibleDir]$ cat hosts.yaml
+		---
+		control:
+			hosts:
+				192.168.33.60:
+		yamlnodes:
+			hosts:
+				192.168.33.70:
+				192.168.33.75:
+			vars:
+				ansible_become: true
+				ansible_become_pass: suman345
+		linux:
+			children:
+				yamlnodes:	
+				
+Note --> if you are changing the default path of the "hosts" file then you need
+mention the path in "ansible.cfg " ( is not mandatory you can use  -i option in 
+ansible to call you inventory file)
+	ex -->
+		[uansible@yamlserver ansible]$ grep -i -v "^#" ansible.cfg | grep -i -v "^$"
+		[defaults]
+		inventory      =/home/uansible/ansibleDir/hosts
+		sudo_user      = root	
+	ex -->
+		[uansible@yamlserver ansible]$ grep -i -v "^#" ansible.cfg | grep -i -v "^$"
+		[defaults]
+		inventory      =/home/uansible/ansibleDir/hosts.yaml
+		sudo_user      = root
+		
+what are the different modules ( give some names)
+==========================================================
+ping , command , shell , ad-hoc ,  file  , raw , service , debbug , copy , yum  , apt , 
+template , mail , git , user , group , mount , docker 
+
+Ping modules
+===============
+	To check the connection with the nodes we can use ping module.
+	
+		[uansible@yamlserver ansibleDir]$ ansible nodeservers -m ping 		# nodeservers is the group of ips
+		
+			192.168.33.70 | SUCCESS => {
+		"ansible_facts": {
+			"discovered_interpreter_python": "/usr/bin/python"
+		},
+		"changed": false,
+		"ping": "pong"
+		}																													
+	
+	To check indivisual ip is pinging or not.
+	----------------------------------------------
+		[uansible@yamlserver ansibleDir]$ ansible 192.168.33.70 -m ping -u uansible
+		
+			192.168.33.70 | SUCCESS => {
+			"ansible_facts": {
+				"discovered_interpreter_python": "/usr/bin/python"
+			},
+			"changed": false,
+			"ping": "pong"
+		}
+	
+	ping with a particular user
+	----------------------------
+	Ansible will default to running from your user account. 
+	If you want to run commands as a different user use "-u usrname"
+	
+		[uansible@yamlserver ansibleDir]$ ansible nodeservers -m ping -u uansible
+		
+			192.168.33.70 | SUCCESS => {
+		"ansible_facts": {
+			"discovered_interpreter_python": "/usr/bin/python"
+		},
+		"changed": false,
+		"ping": "pong"
+		}
+
+ If you want one line output use  "-o" option
+ 
+[uansible@yamlserver ansibleDir]$ ansible -m ping linux -o
+
+192.168.33.70 | SUCCESS => {"ansible_facts": {"discovered_interpreter_python": "/usr/bin/python"}, "changed": false, "ping": "pong"}
+192.168.33.75 | SUCCESS => {"ansible_facts": {"discovered_interpreter_python": "/usr/bin/python"}, "changed": false, "ping": "pong"}
+[uansible@yamlserver ansibleDir]$
+[uansible@yamlserver ansibleDir]$ ansible -m ping all -o
+192.168.33.75 | SUCCESS => {"ansible_facts": {"discovered_interpreter_python": "/usr/bin/python"}, "changed": false, "ping": "pong"}
+192.168.33.70 | SUCCESS => {"ansible_facts": {"discovered_interpreter_python": "/usr/bin/python"}, "changed": false, "ping": "pong"}
+[uansible@yamlserver ansibleDir]$
+
+ad-hoc  module
+===================
+	The ad-hoc module is something which might do something realy fast but donot want to
+save for later.
+
+	how to ran ad-hoc commands / how to Work with Patterns
+	------------------------------------------------------
+		The basic command consists of "ansible" then host groups from "hosts" to run 
+		
+	against, "-m <module-name>" optionally providing the agrguments via "-a ARGS"
+	
+		ansible <host_group> -m <module_name> -a <arguments>
+		
+	When running any command with the Ansible ad-hoc CLI pay attention to quoting rules
+	Using double execute the command in the same machine, where Single quotes would 
+	evaluate the variable on the box you were on.
+	
+	[uansible@yamlserver ansibleDir]$ ansible yamlnodes -m shell -a "echo $HOSTNAME"
+		192.168.33.75 | CHANGED | rc=0 >>
+		yamlserver.host			##### here command executed in same machine
+		
+		192.168.33.70 | CHANGED | rc=0 >>
+		yamlserver.host
+	
+	[uansible@yamlserver ansibleDir]$ ansible yamlnodes -m shell -a 'echo $HOSTNAME'
+	
+		192.168.33.70 | CHANGED | rc=0 >>
+		yamlnode1.host			##### here command executed on the box where you were on
+		
+		192.168.33.75 | CHANGED | rc=0 >>
+		yamlnode2.host
+	 
+	 if you want to read the list of hosts from a file, prefix the file name with ‘@’.
+		
+		vi ips.txt
+			192.168.33.70
+			192.168.33.75
+			
+		[uansible@yamlserver ansibleDir]$ ansible 192.168.33.* -m ping --limit @ips.txt
+		
+			192.168.33.70 | SUCCESS => {
+				"ansible_facts": {
+					"discovered_interpreter_python": "/usr/bin/python"
+				},
+				"changed": false,
+				"ping": "pong"
+			}
+			192.168.33.75 | SUCCESS => {
+				"ansible_facts": {
+					"discovered_interpreter_python": "/usr/bin/python"
+				},
+				"changed": false,
+				"ping": "pong"
+			}
+	
+  
