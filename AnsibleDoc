@@ -595,5 +595,145 @@ we can execute the play-book as below using the tags
 
 
 
+		Ansible vault
+===============================================================
+	Ansible Vault is a feature of ansible that allows you to keep sensitive data such as passwords or 
+keys in encrypted files, rather than as plaintext in playbooks or roles. 
+For example database user name , database password, email user name email password , any server url or any ssh key etc. 
+These vault files can then be distributed or placed in source control.
+
+	ansible-vault command is used to edit files.
+
+How to create new ansible Vault file ?
+	ansible-vault create file_name  # it will create a new file in encrypted form
+		
+	ex-->
+		[uansible@yamlserver ~]$ cd /home/uansible/ansibleDir/yamlVault
+		[uansible@yamlserver yamlVault]$ ansible-vault create vaultdemo.txt
+		
+		New Vault password:
+		Confirm New Vault password:
+		
+		[uansible@yamlserver yamlVault]$
+		[uansible@yamlserver yamlVault]$ cat vaultdemo.txt
+		
+			$ANSIBLE_VAULT;1.1;AES256
+			393863356337353738616338363738653937353566613634323734343239366339306566386338
+			3164356239346537626635656239653366383231303939353265
+
+		[uansible@yamlserver yamlVault]$
+
+How to view the content of the file which is created with ansible vault?
+		ansible-vault  view  file_name
+	ex-->
+		[uansible@yamlserver yamlVault]$ ansible-vault view vaultdemo.txt
+		Vault password:					# use same password which is used at the time of creation of file
+		
+		file created using anisble vault
+		
+		[uansible@yamlserver yamlVault]$    
+	
+How to edit the content of the file which is created with ansible vault?	
+		ansible-vault  edit  file_name
+	ex-->
+		[uansible@yamlserver yamlVault]$ ansible-vault edit vaultdemo.txt
+		
+		Vault password:
+		2L, 36C written
+		
+		[uansible@yamlserver yamlVault]$ ansible-vault view vaultdemo.txt
+		
+		Vault password:
+		
+		file created using anisble vault
+		ok
+		
+		[uansible@yamlserver yamlVault]$  
+
+How to change vault password for a file which is created with anisble vault?
+		ansible-vault  rekey  file_name
+	ex-->		
+		[uansible@yamlserver yamlVault]$ ansible-vault rekey vaultdemo.txt
+		
+		Vault password:
+		New Vault password:
+		Confirm New Vault password:
+		Rekey successful
+		
+		[uansible@yamlserver yamlVault]$
+		
+How to remove the password for a file which is created with anisble vault?
+		ansible-vault  decrypt  file_name  # file will open normaly without password
+	ex-->
+		[uansible@yamlserver yamlVault]$ ansible-vault decrypt vaultdemo.txt
+		
+		Vault password:
+		Decryption successful
+		
+		[uansible@yamlserver yamlVault]$ cat vaultdemo.txt
+		
+		file created using anisble vault
+		ok
+		
+		[uansible@yamlserver yamlVault]$
+
+How to encrypt an existing file using ansible vault?
+		ansible-vault  encrypt  existing_file_name 
+	ex-->
+		[uansible@yamlserver yamlVault]$ ls
+		createAfile.yml  vaultdemo.txt
+		
+		[uansible@yamlserver yamlVault]$
+		[uansible@yamlserver yamlVault]$ cat createAfile.yml
+		---
+		- hosts: yamlnodes
+		tasks:
+			- name: create a file using ansible
+				file:  # this is the module name
+					path: "/home/uansible/yamlDir/ansibleTopic/playbookFile"
+					state: touch
+		
+		[uansible@yamlserver yamlVault]$
+		[uansible@yamlserver yamlVault]$ ansible-vault encrypt createAfile.yml
+		
+		New Vault password:
+		Confirm New Vault password:
+		Encryption successful
+		
+		[uansible@yamlserver yamlVault]$ cat createAfile.yml
+		
+		$ANSIBLE_VAULT;1.1;AES256
+		33373966633461313730363664613264373266646135363637303731613664626662306264643433
+		656630393265646537653238383765373538
+		
+		[uansible@yamlserver yamlVault]$
+
+Once the file is encrypt no one can execute the play-book.
+
+	[uansible@yamlserver yamlVault]$ ansible-playbook createAfile.yml
+	
+	ERROR! Attempting to decrypt but no vault secrets found
+	
+	[uansible@yamlserver yamlVault]$
+
+So to execute this playbook we can use  "--ask-vault-pass" argument.
+This argument will ask to enter the vault password.
+
+		[uansible@yamlserver yamlVault]$
+		[uansible@yamlserver yamlVault]$ ansible-playbook createAfile.yml --ask-vault-pass
+		Vault password:
+		
+		PLAY [yamlnodes] *************************************************************************************************************************
+		
+		TASK [Gathering Facts] *******************************************************************************************************************
+		ok: [192.168.33.75]
+		
+		TASK [create a file using ansible] *******************************************************************************************************
+		changed: [192.168.33.75]
+		
+		PLAY RECAP *******************************************************************************************************************************
+		192.168.33.75              : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+		
+		[uansible@yamlserver yamlVault]$
 
 
