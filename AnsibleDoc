@@ -351,6 +351,48 @@ Different state in file module
   hard	--> create or change  hard link
   link --> create or change  symbolic  link
   touch --> an empty file will be created if file not exist in the path, else updated file access and modification times
+  
+Append a line to an existing file using lineinfile module
+==========================================================================
+The 'lineinfile' module ensures a particular line is in a file, or replace 
+an existing (single line)line using a back-referenced regular expression.
+
+if you want to change multiple lines then the 'lineinfile' module is not useful.
+you have to use  copy or template modules
+
+	ansible yamlnodes -m lineinfile -a 'dest=/home/uansible/yamlDir/ansibleTopic/playbookFile line="the 'lineinfile' module ensures a particular line is in a file"'
+
+Managing Packages / yum module / apt module
+===================================================
+This module use to install , update and uninstall the package.
+
+     Let install "httpd" on ansible nodes.
+	ansible yamlnodes -m yum -a "name=httpd state=present" 
+     but you may get below error.
+	"   "msg": "You need to be root to perform this command.\n",  "
+		
+so we can become a root user by using  "-b" or by "become-user"
+	ansible yamlnodes -m yum -a "name=httpd state=present" -b
+			or
+	ansible yamlnodes -m yum -a "name=httpd state=present" --become-user root
+	
+To verify login to node and execute below command 
+	[uansible@yamlnode1 yamlDir]$ rpm -qa  httpd
+		httpd-2.4.6-90.el7.centos.x86_64
+	[uansible@yamlnode1 yamlDir]$
+
+For installing a package we can use the state=present , for removing a package use
+state=absent and for the latest version installation we can use state=latest
+
+Start , stop the services / service module
+==================================================
+In service module value of state must be one of: reloaded, restarted, started, stopped
+
+To start service
+	 ansible yamlnodes -m service -a "name=httpd state=started" -b
+To stop service
+	 ansible yamlnodes -m service -a "name=httpd state=stopped" -b
+
 
 			playbook
 			============	  
@@ -435,4 +477,123 @@ Ex4 --->  create muiltple file with different permissions
     - {location: '4_file1.txt' , mode: '0644'}
     - {location: '4_file2.txt' , mode: '0750'}
 [uansible@yamlserver playbooks]$
+
+
+####### write a play book to install httpd package
+
+[uansible@yamlserver playbooks]$ cat 5installPackage.yml
+---
+- hosts: yamlnodes
+  tasks:
+    - name: vreify http package has installed or not
+      yum:
+          name: httpd
+          state: present
+	  become: true     # execute the tasks as a Root user
+	  
+[uansible@yamlserver playbooks]$
+
+exeucte using    ansible-playbook -i hosts.yaml 5installPackage.yml
+
+####### write a play book to uninstall/remove httpd package
+
+[uansible@yamlserver playbooks]$ cat 6removePackage.yml
+---
+- hosts: yamlnodes
+  tasks:
+    - name: remove httpd package
+      yum:
+          name: httpd
+          state: absent
+      become: true
+[uansible@yamlserver playbooks]$
+
+execute using "  ansible-playbook  6removePackage.yml "
+
+
+########### check the package is installed or not
+
+create my_rpms file with all the package names
+
+[uansible@yamlserver playbooks]$ cat my_rpms
+httpd
+samba
+[uansible@yamlserver playbooks]$
+
+[uansible@yamlserver playbooks]$ cat 8checkSWstatus.yml
+---
+- hosts: yamlnodes
+  tasks:
+     - name: chcek the software is installed or not
+       yum:
+         list: my_rpms
+       register: is_install_or_not
+     - name: conditionally do the next things
+       debug:
+         msg: "not installed"
+       when: is_install_or_not.results | selectattr("yumstate", "match") | list | length == 0
+[uansible@yamlserver playbooks]$
+
+
+############ check the service status 
+
+[uansible@yamlserver playbooks]$ cat 7checkServiceStatus.yml
+---
+- hosts: yamlnodes
+  tasks:
+     - name: Check the status of the services
+       command: systemctl status "{{ item }}"
+       with_items:
+       - firewalld
+       - sshd
+       register: var_result  # register is used when you want to capture the output of a task to a variable.
+       ignore_errors: yes
+     - name: showing report
+       debug:
+         var: var_result    # print the register variable value
+[uansible@yamlserver playbooks]$
+
+
+ tags in ansible playbook
+===================================
+If you need to execute only certain specific tasks you can specify the tags in ansible play-book. 
+Means Tags help Ansible tasks to be selected from play-book. 
+How to use tags
+-----------------
+    while executing ansible-playbook in command line we can use --tags to include the tags, 
+and --skip-tags to exclude the tags.
+
+========== install and uninstall git using tags in playbook ===============
+
+[uansible@yamlserver playbooks]$ cat 9installNuninstallGit.yml
+---
+- hosts: yamlnodes
+  become: yes
+  gather_facts: False
+  tasks:
+     - name: installing git
+       yum:
+         name: git
+         state: present
+       tags: install
+     - name: uninstalling git
+       yum:
+         name: git
+         state: absent
+       tags: uninstall
+[uansible@yamlserver playbooks]$
+
+we can execute the play-book as below using the tags
+	ansible-playbook 9installNuninstallGit.yml  --tags "install"  # to install git
+				or
+	ansible-playbook 9installNuninstallGit.yml  --skip-tags "uninstall"
+	 
+# to uninstall git we can use the below
+	ansible-playbook 9installNuninstallGit.yml  --skip-tags "uninstall"
+
+##########  Roles  in ansible # read 13_0_roles.yml
+
+
+
+
 
