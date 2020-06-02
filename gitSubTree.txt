@@ -97,7 +97,7 @@ git push -u origin master
  
  [ujam@yamlServer focusDeploy]$ cd  petDev/
  [ujam@yamlServer petDev]$ git push origin master
- 
+                                   
  [ujam@yamlServer focusDeploy]$ git subtree push  --prefix=petDev  petDev master
 		git push using:  petDev master
 		
