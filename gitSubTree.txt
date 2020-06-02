@@ -1,3 +1,5 @@
+
+=================== create remote repository =====================================================
 echo "# focusDeploy" >> README.md
 git init
 git add README.md
@@ -5,58 +7,76 @@ git commit -m "first commit"
 git remote add origin https://github.com/sksumanta/focusDeploy.git
 git push -u origin master
                 
-				
+===================================================================================================				
 
- [ujam@yamlServer allGitProject]$ 
- git clone https://github.com/sksumanta/focusDeploy.git
- git clone https://github.com/sksumanta/petDev.git
- git clone https://github.com/sksumanta/pitFnt.git
- [ujam@yamlServer allGitProject]$ ls -rl
-		total 0
-		drwxrwxr-x. 3 ujam ujam 35 Jun  1 18:04 pitFnt
-		drwxrwxr-x. 3 ujam ujam 35 Jun  1 18:04 petDev
-		drwxrwxr-x. 5 ujam ujam 63 Jun  1 18:12 focusDeploy
- [ujam@yamlServer allGitProject]$
- cd focusDeploy/
- git config --global user.email "sumanta.sahoo98@gmail.com"
- git config --global user.name "sksumanta"
- cd  ../petDev/
- git config --global user.name "sksumanta"
- git config --global user.email "sumanta.sahoo98@gmail.com"
- cd ../pitFnt/
- git config --global user.name "sksumanta"
- git config --global user.email "sumanta.sahoo98@gmail.com"
- cd focusDeploy/
- git config --global user.email "sumanta.sahoo98@gmail.com"
- git config --global user.name "sksumanta"
+
+=========== one time operation by the owner of master repository in git server ====================			
+||
+|| [ujam@yamlServer allGitProject]$ 
+|| git clone https://github.com/sksumanta/focusDeploy.git
+|| git clone https://github.com/sksumanta/petDev.git
+|| git clone https://github.com/sksumanta/pitFnt.git
+|| [ujam@yamlServer allGitProject]$ ls -rl
+||		total 0
+||		drwxrwxr-x. 3 ujam ujam 35 Jun  1 18:04 pitFnt
+||		drwxrwxr-x. 3 ujam ujam 35 Jun  1 18:04 petDev
+||		drwxrwxr-x. 5 ujam ujam 63 Jun  1 18:12 focusDeploy
+|| [ujam@yamlServer allGitProject]$
+|| cd  ../petDev/
+|| git config --global user.name "sksumanta"
+|| git config --global user.email "sumanta.sahoo98@gmail.com"
+|| cd ../pitFnt/
+|| git config --global user.name "sksumanta"
+|| git config --global user.email "sumanta.sahoo98@gmail.com"
+|| cd focusDeploy/
+|| git config --global user.email "sumanta.sahoo98@gmail.com"
+|| git config --global user.name "sksumanta"
+|| 
+|| [ujam@yamlServer focusDeploy]$  ###### in side the parent repository in git server
+||
+|| git remote add -f petDev https://github.com/sksumanta/petDev.git
+|| git subtree add --prefix=petDev  petDev/master --squash
+|| git remote add -f pitFnt  https://github.com/sksumanta/pitFnt.git 
+|| git subtree add --prefix=pitFnt pitFnt/master --squash
+|| 	===========================================================================
+||  ======================= RESULT ============================================
+||  [ujam@yamlServer allGitProject]$ cd focusDeploy
+||  [ujam@yamlServer focusDeploy]$ 
+||		vi theReadme.txt
+||		git add -A
+||		git commit -m "a sample file is added"
+||		git push origin master
+||		ls  -rlt
+||			total 8
+||			-rw-rw-r--. 1 ujam ujam 14 Jun  1 19:22 README.md
+||			drwxrwxr-x. 2 ujam ujam 44 Jun  1 19:41 petDev
+||			drwxrwxr-x. 2 ujam ujam 66 Jun  1 19:43 pitFnt
+||			-rw-rw-r--. 1 ujam ujam 20 Jun  1 19:44 theReadme.txt
+|| ===========================================================================
+
+
+ =============In ansible local machine by the program =========
+  
+
+ [ujam@yamlServer local]$
+	git clone https://github.com/sksumanta/petDev.git
+	git clone https://github.com/sksumanta/pitFnt.git
+	
+  cd  pitFnt/
+	git pull
+  cd  ../petDev/
+	git pull
+	
+ [ujam@yamlServer petDev]$ ls -1R
+	.:
+	fstLocal.txt
+	parmeter2.txt
+	README.md
+	secDemo.txt
  
- [ujam@yamlServer focusDeploy]$ 
- git remote add -f petDev https://github.com/sksumanta/petDev.git
- git subtree add --prefix=petDev  petDev/master --squash
- git remote add -f pitFnt  https://github.com/sksumanta/pitFnt.git 
- git subtree add --prefix=pitFnt pitFnt/master --squash
- [ujam@yamlServer focusDeploy]$ 
-		vi theReadme.txt
-		git add -A
-		git commit -m "a sample file is added"
-		git push origin master
-		ls  -rlt
-			total 8
-			-rw-rw-r--. 1 ujam ujam 14 Jun  1 19:22 README.md
-			drwxrwxr-x. 2 ujam ujam 44 Jun  1 19:41 petDev
-			drwxrwxr-x. 2 ujam ujam 66 Jun  1 19:43 pitFnt
-			-rw-rw-r--. 1 ujam ujam 20 Jun  1 19:44 theReadme.txt
-[ujam@yamlServer allGitProject]$
- cd  petDev/
- vi parmeter1.txt
- vi parmeter2.txt
+ mv fstLocal.txt  ../pitFnt/.
  git add -A
- git commit -m  "two parameter file has been added"
- git push origin master
- 
- mv parmeter1.txt  ../pitFnt/.
- git add -A
- git commit -m "parmeter1.txt moved to pitFnt"
+ git commit -m "fstLocal.txt moved to pitFnt"
  git push origin master
  
  cd  ../pitFnt/
@@ -64,13 +84,22 @@ git push -u origin master
  git commit -m " file moved from petDev"
  git push origin master
  
+ ===========================================================================
  
+ 
+=================== this operation given to the master repository user =====================
+
  [ujam@yamlServer focusDeploy]$ git subtree pull --prefix=petDev  petDev master --squash
 		From https://github.com/sksumanta/petDev
 		* branch            master     -> FETCH_HEAD
 		Merge made by the 'recursive' strategy.
-[ujam@yamlServer focusDeploy]$
-[ujam@yamlServer focusDeploy]$ cd  petDev/
-[ujam@yamlServer petDev]$ git push origin master
-[ujam@yamlServer focusDeploy]$ git subtree push  --prefix=petDev  petDev master
-git push using:  petDev master
+ [ujam@yamlServer focusDeploy]$
+ 
+ [ujam@yamlServer focusDeploy]$ cd  petDev/
+ [ujam@yamlServer petDev]$ git push origin master
+ 
+ [ujam@yamlServer focusDeploy]$ git subtree push  --prefix=petDev  petDev master
+		git push using:  petDev master
+		
+  ######## do same last three steps for other sub repository		
+		
